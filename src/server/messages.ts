@@ -1,6 +1,11 @@
 import { db } from '@/db';
 import { messages, users } from '@/db/schema';
-import { createMessageSchema, deleteMessageSchema, getMessagesSchema } from '@/schemas/messages.schema';
+import {
+  createMessageSchema,
+  deleteMessageSchema,
+  getMessagesSchema,
+  updateMessageSchema,
+} from '@/schemas/messages.schema';
 import { createServerFn } from '@tanstack/react-start';
 import { asc, eq } from 'drizzle-orm';
 import { sendToClients } from './ws';
@@ -18,19 +23,13 @@ export const getMessages = createServerFn({
       offset,
       limit,
       with: {
-        author: {
-          columns: {
-            id: true,
-            name: true,
-            nameColor: true,
-          },
-        },
+        author: true,
       },
     });
 
-    const formatted = data.map((msg) => ({
+    const formatted = data.reverse().map((msg) => ({
       ...msg,
-      author: msg.author.name,
+      author: msg.author,
     }));
 
     return formatted;
@@ -45,7 +44,7 @@ export const sendMessage = createServerFn({
 
     const [fullMessage] = await db
       .select({
-        author: users.name,
+        author: users,
         id: messages.id,
         text: messages.text,
         createdAt: messages.createdAt,
@@ -56,6 +55,21 @@ export const sendMessage = createServerFn({
 
     sendToClients('message:new', fullMessage);
     return fullMessage;
+  });
+
+export const updateMessage = createServerFn({
+  method: 'POST',
+})
+  .inputValidator(updateMessageSchema)
+  .handler(async ({ data: newMessage }) => {
+    const updatedMsg = await db
+      .update(messages)
+      .set({ text: newMessage.text })
+      .where(eq(messages.id, newMessage.id))
+      .returning();
+
+    sendToClients('message:update', updatedMsg);
+    return updatedMsg;
   });
 
 export const deleteMessage = createServerFn({

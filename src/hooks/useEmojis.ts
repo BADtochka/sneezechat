@@ -1,5 +1,6 @@
 import keywords from 'emojilib';
-import { useEffect, useRef, useState } from 'react';
+import { atom, useAtom } from 'jotai';
+import { useEffect, useState } from 'react';
 import { default as emojis } from 'unicode-emoji-json';
 
 export interface Emoji {
@@ -13,12 +14,16 @@ export interface Emoji {
   native: string;
 }
 
+const preloadedEmojisAtom = atom<Array<Emoji>>([]);
+
 export const useEmoji = () => {
   const [findedEmojis, setFindedEmojis] = useState<Array<Emoji>>([]);
   const [query, setQuery] = useState('');
-  const preloadedEmojisRef = useRef<Array<Emoji>>([]);
+  const [preloadedEmojis, setPreloadedEmojis] = useAtom(preloadedEmojisAtom);
 
   useEffect(() => {
+    if (preloadedEmojis.length > 0) return;
+
     const tempArray: Array<Emoji> = [];
     Object.keys(emojis).forEach((key) => {
       const emoji = emojis[key as keyof typeof emojis];
@@ -29,7 +34,7 @@ export const useEmoji = () => {
       });
     });
 
-    preloadedEmojisRef.current = tempArray;
+    setPreloadedEmojis(tempArray);
   }, []);
 
   const findEmojis = (rawText: string) => {
@@ -40,7 +45,7 @@ export const useEmoji = () => {
       return;
     }
 
-    const filteredEmojis = preloadedEmojisRef.current.filter((emoji) =>
+    const filteredEmojis = preloadedEmojis.filter((emoji) =>
       emoji.keywords.find((keyword) => keyword.includes(match[1].toLowerCase())),
     );
 
@@ -48,5 +53,5 @@ export const useEmoji = () => {
     setFindedEmojis(filteredEmojis);
   };
 
-  return { findEmojis, findedEmojis, query };
+  return { findEmojis, findedEmojis, query, preloadedEmojis };
 };

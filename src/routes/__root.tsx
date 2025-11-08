@@ -1,5 +1,7 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router';
 
+import { Error } from '@/components/Error';
+import { useEffect } from 'react';
 import appCss from '../styles.css?url';
 
 export const Route = createRootRoute({
@@ -50,15 +52,23 @@ export const Route = createRootRoute({
 
   shellComponent: RootDocument,
   notFoundComponent: () => <div>Not found</div>,
+  errorComponent: Error,
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const preventDefault = (e: MouseEvent) => e.preventDefault();
+    document.addEventListener('contextmenu', preventDefault);
+    return () => document.removeEventListener('contextmenu', preventDefault);
+  }, []);
+
   return (
     <html lang='en'>
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body className='overflow-hidden'>
         {children}
         <Scripts />
       </body>

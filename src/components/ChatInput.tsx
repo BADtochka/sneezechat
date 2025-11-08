@@ -1,46 +1,50 @@
-import { atomMessages } from '@/atoms/messages';
+import { atomMessages, atomMessageToEdit } from '@/atoms/messages';
 import { userAtom } from '@/atoms/user';
 import { Emoji, useEmoji } from '@/hooks/useEmojis';
 import { sendMessage } from '@/server/messages';
-import { MessageData } from '@/types/Message';
+import { MessageRequest } from '@/types/Message';
 import { tryCatch } from '@/utils/tryCatch';
 import { useFocusTrap, useMergedRef } from '@mantine/hooks';
-import { atom, useAtom } from 'jotai';
+import { useAtom } from 'jotai';
 import { File, SendHorizontal } from 'lucide-react';
-import { ChangeEvent, KeyboardEvent, useRef, useState } from 'react';
+import { ChangeEvent, FC, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { ColonPicker } from './ColonPicker';
 import { EmojiPicker } from './EmojiPicker';
 
-const textAtom = atom('');
+type ChatInputProps = {
+  onMessageSend: () => void;
+};
 
-export const ChatInput = () => {
+export const ChatInput: FC<ChatInputProps> = ({ onMessageSend }) => {
   const [user] = useAtom(userAtom);
-  const [text, setText] = useAtom(textAtom);
+  const [text, setText] = useState('');
   const [messages, setMessages] = useAtom(atomMessages);
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const { findEmojis, findedEmojis, query } = useEmoji();
   const focusTrapRef = useFocusTrap();
   const mergedRef = useMergedRef(inputRef, focusTrapRef);
+  const [messageToEdit, setMessageToEdit] = useAtom(atomMessageToEdit);
 
   const handleMessage = async () => {
-    if (!inputRef.current || !text) return;
+    if (!inputRef.current || !text || !user) return;
 
-    const newMessageData: Pick<MessageData, 'author' | 'text'> = {
+    const newMessageData: MessageRequest = {
       author: user.id,
       text: text,
     };
 
-    const { data, error } = await tryCatch(sendMessage({ data: newMessageData }));
+    const { data: newMessage, error } = await tryCatch(sendMessage({ data: newMessageData }));
 
     if (error) {
       console.error(error);
       return;
     }
 
-    if (data) {
+    if (newMessage) {
       setText('');
-      setMessages([...messages, data]);
+      setMessages([newMessage, ...messages]);
+      onMessageSend();
     }
   };
 
@@ -78,6 +82,12 @@ export const ChatInput = () => {
     setText((prev) => `${prev}${data.native}`);
   };
 
+  useEffect(() => {
+    if (messageToEdit) {
+      setText(messageToEdit.text);
+    }
+  }, [messageToEdit]);
+
   return (
     <div className='relative flex min-h-16 w-full items-center justify-end gap-4 bg-zinc-800 px-4'>
       <div className='flex items-center gap-4 *:size-5 *:cursor-pointer'>
@@ -91,9 +101,18 @@ export const ChatInput = () => {
         onChange={handleChange}
         onKeyDown={handleKeyDown}
       />
-      <div className='flex items-center gap-4 *:size-5 *:cursor-pointer'>
+      <div className='flex items-center gap-2 *:cursor-pointer'>
+        {/* svg gradient */}
+        <svg width='0' height='0'>
+          <linearGradient id='pink-purple-gradient' x1='100%' y1='100%' x2='0%' y2='0%'>
+            <stop stopColor='#f6339a' offset='0%' />
+            <stop stopColor='#ad46ff' offset='100%' />
+          </linearGradient>
+        </svg>
+
         <EmojiPicker onEmojiClick={handleEmoji} />
-        <SendHorizontal onClick={handleMessage} />
+
+        <SendHorizontal onClick={handleMessage} className='duration-50 hover:stroke-[url(#pink-purple-gradient)]' />
       </div>
     </div>
   );

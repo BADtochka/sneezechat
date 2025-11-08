@@ -1,23 +1,44 @@
+import { atomMessageToEdit } from '@/atoms/messages';
+import { userAtom } from '@/atoms/user';
 import { MessageData } from '@/types/Message';
-import { Trash } from 'lucide-react';
+import { cn } from '@/utils/cn';
+import { useClickOutside } from '@mantine/hooks';
+import { useAtom } from 'jotai';
+import { Pen, Trash } from 'lucide-react';
 import { Variants } from 'motion/react';
 import * as motion from 'motion/react-client';
-import { FC } from 'react';
+import { FC, MouseEvent, useState } from 'react';
+import { ContextMenu } from './ContextMenu';
 
 type MessageProps = {
   data: MessageData;
   handleDeleteMessage: (idToDelete: string) => Promise<void>;
 };
 
-export const Message: FC<MessageProps> = ({ data, handleDeleteMessage }) => {
+export const Message: FC<MessageProps> = ({ data: message, handleDeleteMessage }) => {
+  const [user] = useAtom(userAtom);
+  const [open, setOpen] = useState(false);
+  const ref = useClickOutside(() => setOpen(false));
+  const [memorizedCoords, setMemorizedCoords] = useState({ x: 0, y: 0 });
+  const [messageToEdit, setMessageToEdit] = useAtom(atomMessageToEdit);
+
+  const onContextMenu = (e: MouseEvent) => {
+    e.preventDefault();
+    setOpen(true);
+    setMemorizedCoords({ x: e.clientX, y: e.clientY });
+  };
+
   const variants: Variants = {
-    hidden: {
+    hidden: (userAuthor: boolean) => ({
       opacity: 0,
       scale: 0.9,
-    },
+      x: userAuthor ? 100 : -100,
+    }),
+
     visible: {
       opacity: 1,
       scale: 1,
+      x: 0,
     },
     deleted: {
       opacity: 0,
@@ -25,23 +46,47 @@ export const Message: FC<MessageProps> = ({ data, handleDeleteMessage }) => {
     },
   };
 
+  const editMessage = async () => {
+    setMessageToEdit(message);
+    // const [data, error] = await updateMessage({ data: { id: message.id, text: 'EDITED msg' } });
+  };
+
   return (
     <motion.div
       layout
+      onContextMenu={onContextMenu}
       variants={variants}
       initial='hidden'
       animate='visible'
       exit='deleted'
-      className='group flex w-1/2 flex-col gap-2 rounded-2xl bg-zinc-800 p-4'
+      className={cn('flex w-[60%] flex-col gap-2 rounded-2xl bg-zinc-800 p-4', {
+        'ml-auto': message.author.id === user!.id,
+        'bg-zinc-600': message.id === messageToEdit?.id,
+      })}
+      custom={message.author.id === user!.id}
     >
-      <div className='flex items-center justify-between gap-2'>
-        <p className='line-clamp-1 text-xl font-bold'>{data.author}</p>
-        <Trash
-          className='shrink-0 cursor-pointer text-zinc-500 opacity-0 transition-all duration-200 group-hover:opacity-100 hover:text-red-500'
-          onClick={() => handleDeleteMessage(data.id)}
-        />
-      </div>
-      <div className='text-xl wrap-break-word'>{data.text}</div>
+      <p className='line-clamp-1 text-xl font-bold' style={{ color: message.author.nameColor ?? 'white' }}>
+        {message.author.name}
+      </p>
+      <div className='text-xl wrap-break-word'>{message.text}</div>
+      <ContextMenu
+        ref={ref}
+        open={open}
+        onClose={setOpen}
+        coords={memorizedCoords}
+        items={[
+          {
+            label: 'Редактировать',
+            icon: <Pen />,
+            callback: () => editMessage(),
+          },
+          {
+            label: 'Удалить',
+            icon: <Trash />,
+            callback: () => handleDeleteMessage(message.id),
+          },
+        ]}
+      />
     </motion.div>
   );
 };

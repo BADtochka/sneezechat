@@ -1,8 +1,9 @@
 import z from 'zod';
+import { userSchema } from './user.schema.ts';
 
 export const messageSchema = z.object({
   id: z.uuid(),
-  author: z.uuid(),
+  author: userSchema,
   text: z.string().min(1).max(280),
   createdAt: z.date(),
   editedAt: z.date().optional().nullable(),
@@ -16,6 +17,11 @@ export const getMessagesSchema = z.object({
 
 export const createMessageSchema = z.object({
   author: z.uuid(),
+  text: z.string().min(1).max(280),
+});
+
+export const updateMessageSchema = z.object({
+  id: z.uuid(),
   text: z.string().min(1).max(280),
 });
 
