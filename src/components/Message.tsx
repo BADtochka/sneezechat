@@ -20,7 +20,7 @@ export const Message: FC<MessageProps> = ({ data: message, handleDeleteMessage }
   const [open, setOpen] = useState(false);
   const ref = useClickOutside(() => setOpen(false));
   const [memorizedCoords, setMemorizedCoords] = useState({ x: 0, y: 0 });
-  const [messageToEdit, setMessageToEdit] = useAtom(atomMessageToEdit);
+  const [_, setMessageToEdit] = useAtom(atomMessageToEdit);
 
   const onContextMenu = (e: MouseEvent) => {
     e.preventDefault();
@@ -46,11 +46,6 @@ export const Message: FC<MessageProps> = ({ data: message, handleDeleteMessage }
     },
   };
 
-  const editMessage = async () => {
-    setMessageToEdit(message);
-    // const [data, error] = await updateMessage({ data: { id: message.id, text: 'EDITED msg' } });
-  };
-
   return (
     <motion.div
       layout
@@ -61,7 +56,7 @@ export const Message: FC<MessageProps> = ({ data: message, handleDeleteMessage }
       exit='deleted'
       className={cn('flex w-[60%] flex-col gap-2 rounded-2xl bg-zinc-800 p-4', {
         'ml-auto': message.author.id === user!.id,
-        'bg-zinc-600': message.id === messageToEdit?.id,
+        'bg-zinc-600': open,
       })}
       custom={message.author.id === user!.id}
     >
@@ -78,7 +73,7 @@ export const Message: FC<MessageProps> = ({ data: message, handleDeleteMessage }
           {
             label: 'Редактировать',
             icon: <Pen />,
-            callback: () => editMessage(),
+            callback: () => setMessageToEdit(message),
           },
           {
             label: 'Удалить',

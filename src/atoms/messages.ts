@@ -3,4 +3,5 @@ import { atom } from 'jotai';
 
 export const atomMessages = atom<MessageData[]>([]);
 
-export const atomMessageToEdit = atom<MessageData>();
+export const atomMessageToEdit = atom<MessageData | null>();
+

@@ -41,17 +41,7 @@ export const sendMessage = createServerFn({
   .inputValidator(createMessageSchema)
   .handler(async ({ data: newMessage }) => {
     const [message] = await db.insert(messages).values(newMessage).returning();
-
-    const [fullMessage] = await db
-      .select({
-        author: users,
-        id: messages.id,
-        text: messages.text,
-        createdAt: messages.createdAt,
-      })
-      .from(messages)
-      .innerJoin(users, eq(messages.author, users.id))
-      .where(eq(messages.id, message.id));
+    const fullMessage = await getFullMessageById(message.id);
 
     sendToClients('message:new', fullMessage);
     return fullMessage;
@@ -62,15 +52,31 @@ export const updateMessage = createServerFn({
 })
   .inputValidator(updateMessageSchema)
   .handler(async ({ data: newMessage }) => {
-    const updatedMsg = await db
+    const [updatedMsg] = await db
       .update(messages)
       .set({ text: newMessage.text })
       .where(eq(messages.id, newMessage.id))
       .returning();
 
-    sendToClients('message:update', updatedMsg);
-    return updatedMsg;
+    const fullMessage = await getFullMessageById(updatedMsg.id);
+
+    sendToClients('message:update', fullMessage);
+    return fullMessage;
   });
+
+const getFullMessageById = async (id: string) => {
+  const [fullMessage] = await db
+    .select({
+      author: users,
+      id: messages.id,
+      text: messages.text,
+      createdAt: messages.createdAt,
+    })
+    .from(messages)
+    .innerJoin(users, eq(messages.author, users.id))
+    .where(eq(messages.id, id));
+  return fullMessage;
+};
 
 export const deleteMessage = createServerFn({
   method: 'POST',

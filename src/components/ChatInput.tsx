@@ -1,24 +1,24 @@
 import { atomMessages, atomMessageToEdit } from '@/atoms/messages';
 import { userAtom } from '@/atoms/user';
 import { Emoji, useEmoji } from '@/hooks/useEmojis';
-import { sendMessage } from '@/server/messages';
-import { MessageRequest } from '@/types/Message';
+import { sendMessage, updateMessage } from '@/server/messages';
+import { MessageData, MessageSendRequest, MessageUpdateRequest } from '@/types/Message';
 import { tryCatch } from '@/utils/tryCatch';
 import { useFocusTrap, useMergedRef } from '@mantine/hooks';
 import { useAtom } from 'jotai';
-import { File, SendHorizontal } from 'lucide-react';
+import { Check, File, Pencil, SendHorizontal, X } from 'lucide-react';
 import { ChangeEvent, FC, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { ColonPicker } from './ColonPicker';
 import { EmojiPicker } from './EmojiPicker';
 
 type ChatInputProps = {
-  onMessageSend: () => void;
+  onMessageSend: (newMessage: MessageData) => void;
+  onMessageUpdate: (messageToUpdate: MessageData) => void;
 };
 
-export const ChatInput: FC<ChatInputProps> = ({ onMessageSend }) => {
+export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }) => {
   const [user] = useAtom(userAtom);
   const [text, setText] = useState('');
-  const [messages, setMessages] = useAtom(atomMessages);
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const { findEmojis, findedEmojis, query } = useEmoji();
@@ -27,9 +27,19 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend }) => {
   const [messageToEdit, setMessageToEdit] = useAtom(atomMessageToEdit);
 
   const handleMessage = async () => {
-    if (!inputRef.current || !text || !user) return;
+    if (!inputRef.current) return;
 
-    const newMessageData: MessageRequest = {
+    if (messageToEdit) {
+      await handleUpdateMessage();
+    } else {
+      await handleSendMessage();
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!user || !text) return;
+
+    const newMessageData: MessageSendRequest = {
       author: user.id,
       text: text,
     };
@@ -43,8 +53,30 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend }) => {
 
     if (newMessage) {
       setText('');
-      setMessages([newMessage, ...messages]);
-      onMessageSend();
+      onMessageSend(newMessage);
+    }
+  };
+
+  const handleUpdateMessage = async () => {
+    if (!user || !text || !messageToEdit) return;
+
+    const messageForUpdate: MessageUpdateRequest = {
+      id: messageToEdit.id,
+      text: text,
+    };
+
+    const { data: updatedMessage, error } = await tryCatch(updateMessage({ data: messageForUpdate }));
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    if (updatedMessage) {
+      setText('');
+      setMessageToEdit(null);
+
+      onMessageUpdate(updatedMessage);
     }
   };
 
@@ -66,10 +98,6 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend }) => {
       handleMessage();
       return;
     }
-
-    // inputRef.current.focus();
-    // inputRef.current.selectionStart = inputRef.current.value.length;
-    // inputRef.current.selectionEnd = inputRef.current.value.length;
   };
 
   const handleEmoji = (data: Emoji) => {
@@ -82,37 +110,65 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend }) => {
     setText((prev) => `${prev}${data.native}`);
   };
 
+  const handelCrossClick = () => {
+    setMessageToEdit(null);
+    setText('');
+  };
+
   useEffect(() => {
     if (messageToEdit) {
       setText(messageToEdit.text);
+
+      inputRef.current?.focus();
     }
   }, [messageToEdit]);
 
   return (
-    <div className='relative flex min-h-16 w-full items-center justify-end gap-4 bg-zinc-800 px-4'>
-      <div className='flex items-center gap-4 *:size-5 *:cursor-pointer'>
-        <File />
-      </div>
-      <ColonPicker emojis={findedEmojis} show={open && findedEmojis.length > 0} onEmojiSelect={handleEmoji} />
-      <input
-        ref={mergedRef}
-        value={text}
-        className='size-full text-2xl outline-none'
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-      />
-      <div className='flex items-center gap-2 *:cursor-pointer'>
-        {/* svg gradient */}
-        <svg width='0' height='0'>
-          <linearGradient id='pink-purple-gradient' x1='100%' y1='100%' x2='0%' y2='0%'>
-            <stop stopColor='#f6339a' offset='0%' />
-            <stop stopColor='#ad46ff' offset='100%' />
-          </linearGradient>
-        </svg>
+    <div className='relative flex w-full flex-col justify-end bg-zinc-800 px-4'>
+      {messageToEdit && (
+        <div className='flex cursor-pointer flex-row items-center gap-4 pt-1 select-none'>
+          <div className='flex items-center gap-4 *:size-5'>
+            <Pencil />
+          </div>
+          <div className='flex flex-1 flex-col'>
+            <div className='bg-linear-65 from-pink-500 to-purple-500 bg-clip-text text-transparent'>Edit message</div>
+            <div>{messageToEdit.text}</div>
+          </div>
 
-        <EmojiPicker onEmojiClick={handleEmoji} />
+          <X onClick={handelCrossClick} className='duration-50 hover:stroke-[url(#pink-purple-gradient)]' />
+        </div>
+      )}
 
-        <SendHorizontal onClick={handleMessage} className='duration-50 hover:stroke-[url(#pink-purple-gradient)]' />
+      <div className='flex min-h-16 w-full items-center gap-4'>
+        <div className='flex items-center gap-4 *:size-5 *:cursor-pointer'>
+          <File />
+        </div>
+        <ColonPicker emojis={findedEmojis} show={open && findedEmojis.length > 0} onEmojiSelect={handleEmoji} />
+        <input
+          ref={mergedRef}
+          value={text}
+          placeholder='Write a message...'
+          className='size-full text-2xl outline-none'
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+        />
+        <div className='flex items-center gap-2 *:cursor-pointer'>
+          {/* svg gradient */}
+          <svg width='0' height='0'>
+            <linearGradient id='pink-purple-gradient' x1='100%' y1='100%' x2='0%' y2='0%'>
+              <stop stopColor='#f6339a' offset='0%' />
+              <stop stopColor='#ad46ff' offset='100%' />
+            </linearGradient>
+          </svg>
+
+          <EmojiPicker onEmojiClick={handleEmoji} />
+
+          {messageToEdit ? (
+            <Check onClick={handleMessage} className='stroke-[url(#pink-purple-gradient)] duration-50' />
+          ) : (
+            <SendHorizontal onClick={handleMessage} className='duration-50 hover:stroke-[url(#pink-purple-gradient)]' />
+          )}
+        </div>
       </div>
     </div>
   );

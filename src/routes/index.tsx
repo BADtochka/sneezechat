@@ -35,11 +35,13 @@ function RouteComponent() {
   useEffect(() => {
     if (!socketMessage) return;
     if (socketMessage.type === 'message:new') {
-      const socketMessageData = socketMessage.data;
-      if (messages.find((msg) => msg.id === socketMessageData.id)) return;
-
-      setMessages([socketMessageData, ...messages]);
+      addNewMessage(socketMessage.data);
     }
+
+    if (socketMessage.type === 'message:update') {
+      updateMessage(socketMessage.data);
+    }
+
     if (socketMessage.type === 'message:delete') {
       const idToDelete = socketMessage.data.id;
       setMessages(messages.filter((msg) => msg.id !== idToDelete));
@@ -51,9 +53,26 @@ function RouteComponent() {
     await tryCatch(deleteMessage({ data: { id: idToDelete } }));
   };
 
-  const handleMessageSend = () => {
+  const handleMessageSend = (newMessage: MessageData) => {
     if (!messagesRef.current) return;
+    addNewMessage(newMessage);
     messagesRef.current.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' });
+  };
+
+  const addNewMessage = (newMessage: MessageData) => {
+    if (!newMessage.id) return;
+    if (messages.find((msg) => msg.id === newMessage.id)) return;
+    setMessages([newMessage, ...messages]);
+  };
+
+  const updateMessage = (updatedMessage: MessageData) => {
+    if (!updatedMessage.id) return;
+    const tempMessages = [...messages];
+    const tempMessage = tempMessages.find((msg) => msg.id === updatedMessage.id);
+    if (!tempMessage) return;
+    tempMessage.text = updatedMessage.text;
+
+    setMessages(tempMessages);
   };
 
   useEffect(() => {
@@ -65,14 +84,14 @@ function RouteComponent() {
   return (
     <div className='mx-auto flex h-dvh max-w-4xl flex-col justify-end border-x border-zinc-800'>
       <Header />
-      <div className='flex size-full flex-col-reverse gap-4 overflow-auto p-4' ref={messagesRef}>
+      <div className='flex size-full flex-col-reverse gap-4 overflow-auto overflow-x-hidden p-4' ref={messagesRef}>
         <AnimatePresence mode='popLayout'>
           {messages.map((message) => (
             <Message key={message.id} data={message} handleDeleteMessage={handleDeleteMessage} />
           ))}
         </AnimatePresence>
       </div>
-      <ChatInput onMessageSend={handleMessageSend} />
+      <ChatInput onMessageSend={handleMessageSend} onMessageUpdate={updateMessage} />
     </div>
   );
 }
