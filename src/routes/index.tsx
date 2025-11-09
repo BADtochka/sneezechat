@@ -1,17 +1,20 @@
+import { atomShowFileOverlay } from '@/atoms/files';
 import { atomMessages } from '@/atoms/messages';
 import { userAtom } from '@/atoms/user';
 import { ChatInput } from '@/components/ChatInput';
+import { FileDropOverlay } from '@/components/FileDropOverlay';
 import { Header } from '@/components/Header';
 import { Message } from '@/components/Message';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { deleteMessage, getMessages } from '@/server/messages';
 import { MessageData } from '@/types/Message';
+import { cn } from '@/utils/cn';
 import { tryCatch } from '@/utils/tryCatch';
 import { createFileRoute, Navigate, useRouter } from '@tanstack/react-router';
 import { useAtom } from 'jotai';
 import { AnimatePresence } from 'motion/react';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, DragEvent } from 'react';
 
 export const Route = createFileRoute('/')({
   ssr: 'data-only',
@@ -26,6 +29,8 @@ function RouteComponent() {
   const messagesRef = useRef<HTMLDivElement>(null);
   const { socketMessage } = useWebSocket<MessageData>();
   const [user] = useAtom(userAtom);
+
+  const [showOverlay, setShowOverlay] = useAtom(atomShowFileOverlay);
 
   useEffect(() => {
     if (messages.length > 0 || !preloadMessages) return;
@@ -75,6 +80,28 @@ function RouteComponent() {
     setMessages(tempMessages);
   };
 
+  const handleDropArea = (dataTransfer: DataTransfer | File) => {
+    console.log('Dropped data:', dataTransfer);
+  };
+
+  const _onDrop = (event: DragEvent<HTMLDivElement>, active: boolean) => {
+    if (!Array.from(event.dataTransfer.types).includes('Files')) return;
+    event.stopPropagation();
+    event.preventDefault();
+
+    const files = event.dataTransfer.files;
+
+    console.log('Dropped data:', files);
+  };
+
+  const _onDrag = (event: DragEvent<HTMLDivElement>, active: boolean) => {
+    if (!Array.from(event.dataTransfer.types).includes('Files')) return;
+    event.stopPropagation();
+    event.preventDefault();
+
+    setShowOverlay(active);
+  };
+
   useEffect(() => {
     router.invalidate();
   }, []);
@@ -82,7 +109,15 @@ function RouteComponent() {
   if (!user) return <Navigate to='/auth' />;
 
   return (
-    <div className='mx-auto flex h-dvh max-w-4xl flex-col justify-end border-x border-zinc-800'>
+    <div
+      className={cn('relative mx-auto flex h-dvh max-w-4xl flex-col justify-end border-x border-zinc-800', {
+        '*:pointer-events-none': showOverlay,
+      })}
+      onDrop={(event) => _onDrop(event, false)}
+      onDragOver={(event) => _onDrag(event, true)}
+      onDragLeave={(event) => _onDrag(event, false)}
+    >
+      {showOverlay && <FileDropOverlay />}
       <Header />
       <div className='flex size-full flex-col-reverse gap-4 overflow-auto overflow-x-hidden p-4' ref={messagesRef}>
         <AnimatePresence mode='popLayout'>

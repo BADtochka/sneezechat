@@ -1,4 +1,4 @@
-import { atomMessages, atomMessageToEdit } from '@/atoms/messages';
+import { atomMessageToEdit } from '@/atoms/messages';
 import { userAtom } from '@/atoms/user';
 import { Emoji, useEmoji } from '@/hooks/useEmojis';
 import { sendMessage, updateMessage } from '@/server/messages';
@@ -10,6 +10,7 @@ import { Check, File, Pencil, SendHorizontal, X } from 'lucide-react';
 import { ChangeEvent, FC, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { ColonPicker } from './ColonPicker';
 import { EmojiPicker } from './EmojiPicker';
+import { DropArea } from './FileDropOverlay';
 
 type ChatInputProps = {
   onMessageSend: (newMessage: MessageData) => void;
@@ -93,6 +94,12 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (!inputRef.current) return;
+
+    if (e.key === 'Escape') {
+      setText('');
+      setMessageToEdit(null);
+      return;
+    }
 
     if (e.key === 'Enter') {
       handleMessage();
