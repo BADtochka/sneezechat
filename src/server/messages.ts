@@ -8,7 +8,7 @@ import {
 } from '@/schemas/messages.schema';
 import { createServerFn } from '@tanstack/react-start';
 import { asc, eq } from 'drizzle-orm';
-import { sendToClients } from './ws';
+import { wsServer } from './ws';
 
 export const getMessages = createServerFn({
   method: 'GET',
@@ -43,7 +43,7 @@ export const sendMessage = createServerFn({
     const [message] = await db.insert(messages).values(newMessage).returning();
     const fullMessage = await getFullMessageById(message.id);
 
-    sendToClients('message:new', fullMessage);
+    wsServer.broadcast('message:new', fullMessage);
     return fullMessage;
   });
 
@@ -60,7 +60,7 @@ export const updateMessage = createServerFn({
 
     const fullMessage = await getFullMessageById(updatedMsg.id);
 
-    sendToClients('message:update', fullMessage);
+    wsServer.broadcast('message:update', fullMessage);
     return fullMessage;
   });
 
@@ -84,15 +84,15 @@ export const deleteMessage = createServerFn({
   .inputValidator(deleteMessageSchema)
   .handler(async ({ data: { id: idToDelete } }) => {
     const deleted = await db.delete(messages).where(eq(messages.id, idToDelete)).returning();
-    sendToClients('message:delete', deleted[0]);
+    wsServer.broadcast('message:delete', deleted[0].id);
 
     return deleted[0];
   });
 
-export const dummySocketEmit = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  console.log('DUMMY SERVER');
-  sendToClients('test', { message: 'Hello World!' });
-  return { success: true };
-});
+// export const dummySocketEmit = createServerFn({
+//   method: 'GET',
+// }).handler(async () => {
+//   console.log('DUMMY SERVER');
+//   sendToClients('test', { message: 'Hello World!' });
+//   return { success: true };
+// });

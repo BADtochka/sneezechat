@@ -8,6 +8,7 @@ import { Pen, Trash } from 'lucide-react';
 import { Variants } from 'motion/react';
 import * as motion from 'motion/react-client';
 import { FC, MouseEvent, useState } from 'react';
+import { Author } from './Author';
 import { ContextMenu } from './ContextMenu';
 
 type MessageProps = {
@@ -22,10 +23,10 @@ export const Message: FC<MessageProps> = ({ data: message, handleDeleteMessage }
   const [memorizedCoords, setMemorizedCoords] = useState({ x: 0, y: 0 });
   const [_, setMessageToEdit] = useAtom(atomMessageToEdit);
 
-  const onContextMenu = (e: MouseEvent) => {
-    e.preventDefault();
+  const onContextMenu = (event: MouseEvent) => {
+    event.preventDefault();
     setOpen(true);
-    setMemorizedCoords({ x: e.clientX, y: e.clientY });
+    setMemorizedCoords({ x: event.clientX, y: event.clientY });
   };
 
   const variants: Variants = {
@@ -54,16 +55,15 @@ export const Message: FC<MessageProps> = ({ data: message, handleDeleteMessage }
       initial='hidden'
       animate='visible'
       exit='deleted'
-      className={cn('flex w-[60%] flex-col gap-2 rounded-2xl bg-zinc-800 p-4', {
+      id={message.id}
+      className={cn('flex w-[60%] flex-col gap-2 rounded-2xl bg-zinc-800 p-4 transition-colors duration-300', {
         'ml-auto': message.author.id === user!.id,
         'bg-zinc-600': open,
       })}
       custom={message.author.id === user!.id}
     >
-      <p className='line-clamp-1 text-xl font-bold' style={{ color: message.author.nameColor ?? 'white' }}>
-        {message.author.name}
-      </p>
-      <div className='text-xl wrap-break-word'>{message.text}</div>
+      <Author data={message} />
+      <p className='text-xl wrap-break-word'>{message.text}</p>
       <ContextMenu
         ref={ref}
         open={open}

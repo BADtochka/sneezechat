@@ -13,9 +13,10 @@ type UseWebSocketReturn<T = unknown> = {
   error: Event | null;
   connect: () => void;
   disconnect: () => void;
+  send: <ST>(type: string, data: ST) => void;
 };
 
-export function useWebSocket<T>(): UseWebSocketReturn<T> {
+export function useOldWebSocket<T>(): UseWebSocketReturn<T> {
   const url = 'ws://localhost:1337';
   const tryToRecon = true;
   const maxRetries = 5;
@@ -85,6 +86,11 @@ export function useWebSocket<T>(): UseWebSocketReturn<T> {
     };
   }, [connect, disconnect]);
 
+  const send = <T>(type: string, data: T) => {
+    if (!wsRef.current) return null;
+    wsRef.current.send(JSON.stringify({ type, data }));
+  };
+
   const state: WSReadyState = useMemo(() => {
     if (!wsRef.current) return readyState;
     switch (wsRef.current.readyState) {
@@ -101,5 +107,5 @@ export function useWebSocket<T>(): UseWebSocketReturn<T> {
     }
   }, [readyState]);
 
-  return { readyState: state, socketMessage, error, connect, disconnect };
+  return { readyState: state, socketMessage, error, connect, disconnect, send };
 }

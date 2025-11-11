@@ -1,6 +1,6 @@
 import { userAtom } from '@/atoms/user';
 import { ColorPicker } from '@/components/ColorPicker';
-import { createUser } from '@/server/createUser';
+import { createUser } from '@/server/user';
 import { User } from '@/types/User';
 import { cn } from '@/utils/cn';
 import { tryCatch } from '@/utils/tryCatch';

@@ -1,4 +1,4 @@
-import { motion, Variants } from 'motion/react';
+import { AnimatePresence, motion, Variants } from 'motion/react';
 import { forwardRef, JSX, PropsWithChildren } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -37,12 +37,13 @@ export const ContextMenu = forwardRef<HTMLDivElement, PropsWithChildren<ContextM
 
     const menu = (
       <motion.div
+        key='menu'
         ref={ref}
         initial='hidden'
         animate='visible'
         exit='hidden'
         variants={variants}
-        style={coords}
+        style={{ y: coords.y, x: coords.x }}
         className='absolute top-0 left-0 z-100 flex min-w-[200px] flex-col rounded-2xl border border-zinc-700 bg-zinc-800 p-2 text-xl'
       >
         {items.map((item) => (
@@ -60,7 +61,7 @@ export const ContextMenu = forwardRef<HTMLDivElement, PropsWithChildren<ContextM
 
     return (
       <div className='w-full'>
-        {open && createPortal(menu, document.body)}
+        {createPortal(<AnimatePresence>{open && menu}</AnimatePresence>, document.body)}
         {children}
       </div>
     );

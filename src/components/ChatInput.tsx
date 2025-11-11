@@ -1,16 +1,17 @@
 import { atomMessageToEdit } from '@/atoms/messages';
 import { userAtom } from '@/atoms/user';
 import { Emoji, useEmoji } from '@/hooks/useEmojis';
+import { useSocket } from '@/hooks/useSocket';
 import { sendMessage, updateMessage } from '@/server/messages';
 import { MessageData, MessageSendRequest, MessageUpdateRequest } from '@/types/Message';
 import { tryCatch } from '@/utils/tryCatch';
-import { useFocusTrap, useMergedRef } from '@mantine/hooks';
+import { useDebouncedCallback, useFocusTrap, useMergedRef, useThrottledCallback } from '@mantine/hooks';
 import { useAtom } from 'jotai';
-import { Check, File, Pencil, SendHorizontal, X } from 'lucide-react';
+import { Check, File, SendHorizontal } from 'lucide-react';
 import { ChangeEvent, FC, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { ColonPicker } from './ColonPicker';
 import { EmojiPicker } from './EmojiPicker';
-import { DropArea } from './FileDropOverlay';
+import { MessageToEditPreview } from './MessageToEditView';
 
 type ChatInputProps = {
   onMessageSend: (newMessage: MessageData) => void;
@@ -23,9 +24,28 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const { findEmojis, findedEmojis, query } = useEmoji();
+  const [messageToEdit, setMessageToEdit] = useAtom(atomMessageToEdit);
   const focusTrapRef = useFocusTrap();
   const mergedRef = useMergedRef(inputRef, focusTrapRef);
-  const [messageToEdit, setMessageToEdit] = useAtom(atomMessageToEdit);
+  const throttledTyping = useThrottledCallback(
+    () =>
+      send('user:typing', {
+        id: user!.id,
+        name: user!.name,
+        typing: true,
+      }),
+    1000,
+  );
+  const debouncedTyping = useDebouncedCallback(
+    () =>
+      send('user:typing', {
+        id: user!.id,
+        name: user!.name,
+        typing: false,
+      }),
+    800,
+  );
+  const { send } = useSocket();
 
   const handleMessage = async () => {
     if (!inputRef.current) return;
@@ -58,6 +78,21 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
     }
   };
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (!inputRef.current) return;
+
+    if (e.key === 'Escape') {
+      setText('');
+      setMessageToEdit(null);
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      handleMessage();
+      return;
+    }
+  };
+
   const handleUpdateMessage = async () => {
     if (!user || !text || !messageToEdit) return;
 
@@ -83,27 +118,19 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const content = e.target.value;
+    setText(content);
+    if (content.length < 1) {
+      debouncedTyping();
+      return;
+    }
+
+    throttledTyping();
+    debouncedTyping();
     if (content.includes(':') && content.length > 2) {
       findEmojis(content);
       setOpen(true);
     } else if (open) {
       setOpen(false);
-    }
-    setText(content);
-  };
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (!inputRef.current) return;
-
-    if (e.key === 'Escape') {
-      setText('');
-      setMessageToEdit(null);
-      return;
-    }
-
-    if (e.key === 'Enter') {
-      handleMessage();
-      return;
     }
   };
 
@@ -117,34 +144,14 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
     setText((prev) => `${prev}${data.native}`);
   };
 
-  const handelCrossClick = () => {
-    setMessageToEdit(null);
-    setText('');
-  };
-
   useEffect(() => {
-    if (messageToEdit) {
-      setText(messageToEdit.text);
-
-      inputRef.current?.focus();
-    }
+    setText(messageToEdit?.text ?? '');
+    inputRef.current?.focus();
   }, [messageToEdit]);
 
   return (
     <div className='relative flex w-full flex-col justify-end bg-zinc-800 px-4'>
-      {messageToEdit && (
-        <div className='flex cursor-pointer flex-row items-center gap-4 pt-1 select-none'>
-          <div className='flex items-center gap-4 *:size-5'>
-            <Pencil />
-          </div>
-          <div className='flex flex-1 flex-col'>
-            <div className='bg-linear-65 from-pink-500 to-purple-500 bg-clip-text text-transparent'>Edit message</div>
-            <div>{messageToEdit.text}</div>
-          </div>
-
-          <X onClick={handelCrossClick} className='duration-50 hover:stroke-[url(#pink-purple-gradient)]' />
-        </div>
-      )}
+      <MessageToEditPreview />
 
       <div className='flex min-h-16 w-full items-center gap-4'>
         <div className='flex items-center gap-4 *:size-5 *:cursor-pointer'>

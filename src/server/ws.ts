@@ -1,42 +1,81 @@
-// src/server/ws.ts
+import { ClientToServer, ServerToClient } from '@/types/Socket';
 import { WebSocket, WebSocketServer } from 'ws';
+import events from './events';
 
 const PORT = 1337;
 
-interface CustomSocketServer extends WebSocketServer {
-  sendToClients: <T>(type: string, data: T) => void;
-}
+type ClientEventCallback<T extends keyof ClientToServer> = (data: ClientToServer[T], socket: WebSocket) => void;
 
-// Расширяем типизацию globalThis
-declare global {
-  // Чтобы TS не ругался на повторное объявление при HMR
-  // eslint-disable-next-line no-var
-  var __WSS__: CustomSocketServer | undefined;
-}
+class WSServer {
+  private wss: WebSocketServer;
+  private listeners = new Map<keyof ClientToServer, Set<ClientEventCallback<any>>>();
 
-if (!globalThis.__WSS__) {
-  const wss = new WebSocketServer({ port: PORT, host: '0.0.0.0' }) as CustomSocketServer;
+  constructor() {
+    this.wss = new WebSocketServer({ port: PORT, host: '0.0.0.0' });
+    console.log(`[WS] Server started on port ${PORT}`);
 
-  console.log(`[WS] Server started on port ${PORT}`);
+    this.wss.on('connection', (socket) => {
+      console.log('[WS] Client connected');
+      this.send(socket, 'user:joined', { test: 'lol' });
 
-  wss.on('connection', (socket: WebSocket) => {
-    console.log('[WS] Client connected');
+      socket.on('message', (msg) => {
+        try {
+          const { type, data } = JSON.parse(msg.toString());
+          this.emit(type, data, socket);
+        } catch (e) {
+          console.error('[WS] Invalid message:', msg.toString());
+        }
+      });
 
-    socket.send(JSON.stringify({ type: 'welcome' }));
-
-    socket.on('message', (msg) => {
-      console.log('[WS] Received:', msg.toString());
+      socket.on('close', () => {
+        console.log('[WS] Client disconnected');
+      });
     });
-  });
+  }
 
-  globalThis.__WSS__ = wss;
-} else {
-  console.log(`[WS] Reusing existing WebSocketServer on port ${PORT}`);
+  on<T extends keyof ClientToServer>(event: T, callback: ClientEventCallback<T>) {
+    console.log('✅ Event listener registered:', event);
+
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set());
+    }
+    this.listeners.get(event)!.add(callback);
+  }
+
+  private emit<T extends keyof ClientToServer>(event: T, data: ClientToServer[T], socket: WebSocket) {
+    const eventListeners = this.listeners.get(event);
+    if (eventListeners) {
+      eventListeners.forEach((callback) => {
+        try {
+          callback(data, socket);
+        } catch (error) {
+          console.error(`[WS] Error in event handler for ${event}:`, error);
+        }
+      });
+    }
+  }
+
+  send<T extends keyof ServerToClient>(socket: WebSocket, event: T, data: ServerToClient[T]) {
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: event, data }));
+    }
+  }
+
+  broadcast<T extends keyof ServerToClient>(event: T, data: ServerToClient[T]) {
+    this.wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({ type: event, data }));
+      }
+    });
+  }
 }
 
-export const sendToClients = <T>(type: string, data: T) => {
-  wss.clients.forEach((client) => {
-    client.send(JSON.stringify({ type, data }));
-  });
-};
-export const wss = globalThis.__WSS__!;
+// Глобальный синглтон
+declare global {
+  var __WSS__: WSServer | undefined;
+}
+
+export const wsServer = globalThis.__WSS__ ?? new WSServer();
+if (!globalThis.__WSS__) globalThis.__WSS__ = wsServer;
+
+events();

@@ -1,16 +1,30 @@
 import { Upload } from 'lucide-react';
+import { motion, Variants } from 'motion/react';
+import { FC } from 'react';
 
-export const FileDropOverlay = () => {
+type FileDropOverlayProps = {
+  status: 'accepted' | 'rejected' | 'waiting';
+};
+
+export const FileDropOverlay: FC<FileDropOverlayProps> = ({ status }) => {
+  const variants: Variants = {
+    hidden: { opacity: 0 },
+    waiting: { opacity: 1, borderColor: '#3b82f6' },
+    accepted: { opacity: 1, borderColor: '#22c55e' },
+    rejected: { opacity: 1, borderColor: '#ef4444' },
+  };
+
   return (
-    <div
-      className='drop_area pointer-events-none absolute z-1 flex size-full flex-col items-center justify-center bg-zinc-800 opacity-90
-        select-none'
+    <motion.div
+      variants={variants}
+      initial='hidden'
+      animate={status}
+      exit='hidden'
+      className='pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-6 border border-transparent
+        bg-zinc-800/90 select-none'
     >
       <Upload className='scale-200' />
-
-      <div className='drop_area_text pt-3 text-3xl'>
-        <p className='text_1'>Drop Here</p>
-      </div>
-    </div>
+      <p className='text-3xl'>Закидывай сюда БАЛЯ</p>
+    </motion.div>
   );
 };
