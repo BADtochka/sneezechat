@@ -1,5 +1,5 @@
 import { cn } from '@/utils/cn';
-import { AnimatePresence, delay } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
 import { DragEvent, FC, PropsWithChildren, useState } from 'react';
 import { FileDropOverlay } from './FileDropOverlay';
 
@@ -7,7 +7,7 @@ type FileDropAreaProps = {
   accept?: string[];
 };
 
-export const FileDropArea: FC<PropsWithChildren<FileDropAreaProps>> = ({ children, accept }) => {
+export const FileDropArea: FC<PropsWithChildren<FileDropAreaProps>> = ({ children }) => {
   const [showOverlay, setShowOverlay] = useState(false);
   const [status, setStatus] = useState<'accepted' | 'rejected' | 'waiting'>('waiting');
 
@@ -26,6 +26,7 @@ export const FileDropArea: FC<PropsWithChildren<FileDropAreaProps>> = ({ childre
       }
     }
 
+    setShowOverlay(false);
     // for (const file of files) {
     // console.log(event.dataTransfer);
     // }
@@ -39,7 +40,7 @@ export const FileDropArea: FC<PropsWithChildren<FileDropAreaProps>> = ({ childre
     //   setStatus('accepted');
     // });
 
-    delay(() => setShowOverlay(false), 500);
+    // delay(() => setShowOverlay(false), 500);
   };
 
   const _onDrag = (event: DragEvent<HTMLDivElement>, active: boolean) => {
@@ -57,7 +58,7 @@ export const FileDropArea: FC<PropsWithChildren<FileDropAreaProps>> = ({ childre
       onDragOver={(event) => _onDrag(event, true)}
       onDragLeave={(event) => _onDrag(event, false)}
       className={cn('h-full overflow-hidden', {
-        '*:pointer-events-none': showOverlay,
+        // '*:pointer-events-none': showOverlay,
       })}
     >
       {children}
