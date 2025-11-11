@@ -24,7 +24,7 @@ export const FileDropOverlay: FC<FileDropOverlayProps> = ({ status }) => {
         bg-zinc-800/90 select-none'
     >
       <Upload className='scale-200' />
-      <p className='text-3xl'>Закидывай сюда БАЛЯ</p>
+      <p className='text-3xl'>Закидывай сюда</p>
     </motion.div>
   );
 };
