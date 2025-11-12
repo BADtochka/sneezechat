@@ -15,7 +15,7 @@ export const Header = () => {
   if (!user) return null;
 
   return (
-    <div className='flex items-center justify-end gap-4 bg-zinc-800 p-4 text-2xl'>
+    <div className='flex items-center justify-end gap-4 bg-zinc-800 p-4 text-2xl border-b border-[#313131]'>
       <p style={{ color: user.nameColor ?? 'white' }}>{user.name}</p>
       <LogOut className='size-11 cursor-pointer p-2' onClick={handleLogout} />
     </div>
