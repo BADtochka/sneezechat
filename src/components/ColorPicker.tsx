@@ -31,14 +31,17 @@ export const ColorPicker: FC<ColorPickerProps> = ({ onColorChange }) => {
         onClick={handleClick}
       />
       {showColorPicker && (
-        <Sketch
-          ref={ref}
-          className='absolute top-[1.5em] right-0 z-2'
-          color={nickNameColor}
-          onChange={(color) => {
-            handleChange(color.hex);
-          }}
-        />
+        <div className='absolute! top-[calc(100%+16px)] right-0 z-2 rounded-2xl border border-zinc-700 bg-zinc-900 p-2'>
+          <Sketch
+            ref={ref}
+            color={nickNameColor}
+            disableAlpha
+            className='bg-transparent! p-0! shadow-none! *:nth-[2]:hidden! *:nth-[3]:hidden!'
+            onChange={(color) => {
+              handleChange(color.hex);
+            }}
+          />
+        </div>
       )}
     </>
   );

@@ -4,6 +4,7 @@ import { createUserSchema } from '@/schemas/user.schema.ts';
 import { User } from '@/types/User';
 import { createServerFn } from '@tanstack/react-start';
 import { eq } from 'drizzle-orm';
+import { wsServer } from './ws';
 
 export const createUser = createServerFn({
   method: 'POST',
@@ -17,7 +18,8 @@ export const createUser = createServerFn({
 
     if (existedUser) {
       existedUser.nameColor = newUser.nameColor;
-      userToReturn = await updateUser(existedUser);
+      userToReturn = await _updateUser(existedUser);
+      wsServer.broadcast('user:update', userToReturn);
     } else {
       const createdUser = await db.insert(users).values(newUser).returning();
       userToReturn = createdUser[0];
@@ -26,8 +28,12 @@ export const createUser = createServerFn({
     return userToReturn;
   });
 
-const updateUser = async (userToUpdate: User): Promise<User> => {
-  return (
-    await db.update(users).set({ nameColor: userToUpdate.nameColor }).where(eq(users.id, userToUpdate.id)).returning()
-  )[0];
+const _updateUser = async (user: User): Promise<User> => {
+  const updatedUsers = await db
+    .update(users)
+    .set({ nameColor: user.nameColor })
+    .where(eq(users.id, user.id))
+    .returning();
+
+  return updatedUsers.pop()!;
 };

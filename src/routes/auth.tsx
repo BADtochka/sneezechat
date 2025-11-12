@@ -17,7 +17,7 @@ export const Route = createFileRoute('/auth')({
 });
 
 export const nicknameAtom = atomWithStorage<string>('chatusername', '');
-export const nicknameColorAtom = atomWithStorage<string>('chatcolor', '#fff');
+export const nicknameColorAtom = atomWithStorage<string>('chatcolor', 'hsva(0, 100%, 100%, 1)');
 
 function RouteComponent() {
   const navigate = useNavigate();
@@ -30,6 +30,7 @@ function RouteComponent() {
 
   useHotkeys([['Enter', () => handleEnterButton()]], []);
   useEffect(() => setHydrated(true), []);
+  // TODO: add loading state
 
   const handleEnterButton = async () => {
     if (nickname.length < minNicknameLength) return;

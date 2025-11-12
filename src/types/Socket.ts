@@ -1,5 +1,5 @@
 import { MessageData } from './Message';
-import { User } from './User';
+import { PublicUser } from './User';
 import { UUID } from './UUID';
 
 export type ServerToClient = {
@@ -8,13 +8,14 @@ export type ServerToClient = {
   'message:delete': UUID;
 
   'user:joined': { test: 'lol' };
-  'user:typing': Pick<User, 'id' | 'name'> & {
+  'user:update': PublicUser;
+  'user:typing': PublicUser & {
     typing: boolean;
   };
 };
 
 export type ClientToServer = {
-  'user:typing': Pick<User, 'id' | 'name'> & {
+  'user:typing': PublicUser & {
     typing: boolean;
   };
 };

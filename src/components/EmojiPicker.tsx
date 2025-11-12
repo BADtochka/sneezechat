@@ -1,9 +1,10 @@
-import { Emoji, useEmoji } from '@/hooks/useEmojis';
+import { Emoji, EmojiCategory, useEmoji } from '@/hooks/useEmojis';
+import { getObjectKeys } from '@/utils/getObjectKeys';
 import { useClickOutside, useFocusTrap, useHover } from '@mantine/hooks';
 import { ClientOnly } from '@tanstack/react-router';
 import { motion, Variants } from 'motion/react';
-import { FC, useEffect, useState } from 'react';
-
+import { ChangeEvent, FC, useEffect, useRef, useState } from 'react';
+import { default as emojis } from 'unicode-emoji-json';
 type EmojiPickerProps = {
   onEmojiClick: (data: Emoji) => void;
 };
@@ -12,8 +13,24 @@ export const EmojiPicker: FC<EmojiPickerProps> = ({ onEmojiClick }) => {
   const [open, setOpen] = useState(false);
   const ref = useClickOutside(() => setOpen(false));
   const { hovered, ref: emojiRef } = useHover();
-  const { preloadedEmojis } = useEmoji();
+  const [emojiIndexToShow, setEmojiIndexToShow] = useState(0);
+  const { categorizedEmojis, findedEmojis, findEmojiByPicker } = useEmoji();
+  const [searchQuery, setSearchQuery] = useState('');
   const inputRef = useFocusTrap(open);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const PICKER_EMOJIS = ['😀', '😎', '🥸', '🤪', '🤡'];
+
+  const categoriesEmoji: Record<EmojiCategory, keyof typeof emojis> = {
+    'Smileys & Emotion': '😀',
+    'People & Body': '💻',
+    'Animals & Nature': '🍃',
+    'Food & Drink': '🍔',
+    'Travel & Places': '🗺️',
+    Activities: '🎲',
+    Objects: '🧩',
+    Symbols: '➕',
+    Flags: '🎌',
+  };
 
   const variants: Variants = {
     closed: {
@@ -28,62 +45,105 @@ export const EmojiPicker: FC<EmojiPickerProps> = ({ onEmojiClick }) => {
     },
   };
 
-  const [emojiIndexToShow, setEmojiIndexToShow] = useState(0);
-  const emojis = ['😀', '😎', '🥸', '🤪', '🤡'];
-
   useEffect(() => {
     updateRandomEmoji();
   }, [hovered]);
 
+  useEffect(() => {
+    findEmojiByPicker(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    !open && setSearchQuery('');
+  }, [open]);
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
   const updateRandomEmoji = () => {
     if (!hovered) return;
     let tempIndex = emojiIndexToShow + 1;
-    if (tempIndex >= emojis.length) {
+    if (tempIndex >= PICKER_EMOJIS.length) {
       tempIndex = 0;
     }
     setEmojiIndexToShow(tempIndex);
+  };
+
+  const handleCategorySet = (category: EmojiCategory) => {
+    const categorySection = document.getElementById(category) as HTMLDivElement;
+    categorySection.scrollIntoView({ block: 'start' });
   };
 
   return (
     <ClientOnly>
       <div className='relative size-[2em]' ref={ref}>
         <div
-          className='flex size-[32px] flex-row items-center justify-center rounded-sm text-[1.4em] filter-[grayscale(1)] duration-50
-            hover:scale-110 hover:bg-zinc-700 hover:filter-none'
+          className='flex size-8 cursor-pointer flex-row items-center justify-center rounded-sm text-[1.4em] filter-[grayscale(1)]
+            duration-50 hover:scale-110 hover:bg-zinc-700 hover:filter-none'
           onClick={() => setOpen(!open)}
           ref={emojiRef}
         >
-          {emojis[emojiIndexToShow]}
+          {PICKER_EMOJIS[emojiIndexToShow]}
         </div>
         <motion.div
           variants={variants}
           initial={false}
           animate={open ? 'opened' : 'closed'}
-          className='absolute right-0 bottom-12 flex gap-4 rounded-2xl border border-zinc-600 bg-zinc-800 p-4 pr-0 text-2xl select-none'
+          className='absolute right-0 bottom-16 flex gap-4 overflow-hidden rounded-2xl border border-zinc-600 bg-zinc-800 pt-4 text-2xl
+            select-none max-md:fixed max-md:bottom-20 max-md:w-full'
         >
-          <div className='flex flex-col justify-between gap-4'>
-            <div>😎</div>
-            <div>🍃</div>
-            <div>🍔</div>
-            <div>🎲</div>
-            <div>🗺️</div>
-            <div>💻</div>
-            <div>➕</div>
-            <div>🎌</div>
+          <div className='flex flex-col justify-between pb-4'>
+            {getObjectKeys(categoriesEmoji).map((key) => (
+              <div
+                key={key}
+                onClick={() => handleCategorySet(key)}
+                className='flex h-full cursor-pointer items-center justify-center rounded-tr-2xl rounded-br-2xl p-2 hover:bg-zinc-600'
+              >
+                {categoriesEmoji[key]}
+              </div>
+            ))}
           </div>
-          <div className='flex flex-col gap-4'>
-            <div className='grid size-[450px] grid-cols-8 flex-wrap overflow-auto'>
-              {preloadedEmojis.map((emoji) => (
-                <div
-                  key={emoji.name}
-                  className='flex aspect-square items-center justify-center hover:bg-zinc-700'
-                  onClick={() => onEmojiClick(emoji)}
-                >
-                  {emoji.native}
+          <div className='flex size-[450px] flex-col'>
+            <div className='grow overflow-auto max-md:w-full' ref={containerRef}>
+              {findedEmojis.length > 0 ? (
+                <div className='grid grid-cols-[repeat(auto-fill,minmax(64px,1fr))]'>
+                  {findedEmojis.map((emoji) => (
+                    <div
+                      key={emoji.slug}
+                      className='flex aspect-square cursor-pointer items-center justify-center hover:bg-zinc-700/50'
+                      onClick={() => onEmojiClick(emoji)}
+                    >
+                      {emoji.native}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                getObjectKeys(categorizedEmojis).map((key) => (
+                  <div key={key} className='flex flex-col gap-2 whitespace-nowrap'>
+                    <p id={key}>{key}</p>
+                    <div className='grid grid-cols-[repeat(auto-fill,minmax(64px,1fr))]'>
+                      {categorizedEmojis[key as EmojiCategory].map((emoji) => (
+                        <div
+                          key={emoji.slug}
+                          className='flex aspect-square cursor-pointer items-center justify-center hover:bg-zinc-700/50'
+                          onClick={() => onEmojiClick(emoji)}
+                        >
+                          {emoji.native}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-            <input placeholder='Поиск' className='outline-none' ref={inputRef} />
+            <input
+              placeholder='Поиск'
+              onChange={handleChange}
+              value={searchQuery}
+              className='h-[60px] shrink-0 outline-none'
+              ref={inputRef}
+            />
           </div>
         </motion.div>
       </div>

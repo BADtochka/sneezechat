@@ -1,12 +1,27 @@
+import { preloadedEmojisAtom } from '@/atoms/emojis';
+import { getObjectKeys } from '@/utils/getObjectKeys';
 import keywords from 'emojilib';
-import { atom, useAtom } from 'jotai';
+import { useAtom } from 'jotai';
 import { useEffect, useState } from 'react';
 import { default as emojis } from 'unicode-emoji-json';
+
+export const categories = [
+  'Smileys & Emotion',
+  'People & Body',
+  'Animals & Nature',
+  'Food & Drink',
+  'Travel & Places',
+  'Activities',
+  'Objects',
+  'Symbols',
+  'Flags',
+] as const;
+export type EmojiCategory = (typeof categories)[number];
 
 export interface Emoji {
   name: string;
   slug: string;
-  group: string;
+  group: EmojiCategory | (string & {});
   emoji_version: string;
   unicode_version: string;
   skin_tone_support: boolean;
@@ -14,18 +29,28 @@ export interface Emoji {
   native: string;
 }
 
-const preloadedEmojisAtom = atom<Array<Emoji>>([]);
-
 export const useEmoji = () => {
   const [findedEmojis, setFindedEmojis] = useState<Array<Emoji>>([]);
   const [query, setQuery] = useState('');
   const [preloadedEmojis, setPreloadedEmojis] = useAtom(preloadedEmojisAtom);
+  const [categorizedEmojis, setCategorizedEmojis] = useState<Record<EmojiCategory, Emoji[]>>({
+    'Animals & Nature': [],
+    'Food & Drink': [],
+    Activities: [],
+    'Smileys & Emotion': [],
+    'Travel & Places': [],
+    'People & Body': [],
+    Flags: [],
+    Objects: [],
+    Symbols: [],
+  });
 
   useEffect(() => {
     if (preloadedEmojis.length > 0) return;
 
     const tempArray: Array<Emoji> = [];
-    Object.keys(emojis).forEach((key) => {
+
+    getObjectKeys(emojis).forEach((key) => {
       const emoji = emojis[key as keyof typeof emojis];
       tempArray.push({
         ...emoji,
@@ -37,11 +62,24 @@ export const useEmoji = () => {
     setPreloadedEmojis(tempArray);
   }, []);
 
-  const findEmojis = (rawText: string) => {
+  useEffect(() => {
+    if (!preloadedEmojis.length) return;
+
+    const categorizedObj = {} as Record<EmojiCategory, Emoji[]>;
+
+    categories.forEach((category) => {
+      categorizedObj[category] = preloadedEmojis.filter((e) => e.group === category);
+    });
+
+    setCategorizedEmojis(categorizedObj);
+  }, [preloadedEmojis]);
+
+  const findEmojiByChat = (rawText: string) => {
     const match = rawText.match(/:(.*)/);
 
     if (!match) {
       setFindedEmojis([]);
+      setQuery('');
       return;
     }
 
@@ -53,5 +91,17 @@ export const useEmoji = () => {
     setFindedEmojis(filteredEmojis);
   };
 
-  return { findEmojis, findedEmojis, query, preloadedEmojis };
+  const findEmojiByPicker = (query: string) => {
+    if (!query) {
+      setFindedEmojis([]);
+      return;
+    }
+    const filteredEmojis = preloadedEmojis.filter((emoji) =>
+      emoji.keywords.find((keyword) => keyword.includes(query.toLowerCase())),
+    );
+
+    setFindedEmojis(filteredEmojis);
+  };
+
+  return { findEmojiByChat, findEmojiByPicker, setQuery, findedEmojis, query, preloadedEmojis, categorizedEmojis };
 };

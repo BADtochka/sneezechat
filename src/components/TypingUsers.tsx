@@ -18,27 +18,17 @@ export const TypingUsers: FC<TypingProps> = ({ users }) => {
     },
   };
 
-  const twoTyping = users.map((user) => user.name).join(' и ');
-  const threeAndMoreTyping = users.map((user) => user.name).join(', ');
-  const currentTypingUsers = users.filter((user) => user.typing);
+  const userNamesString = users.map((user) => user.name).join(users.length === 2 ? ' и ' : ', ');
+  let typingString = userNamesString + (users.length > 1 ? ' печатают' : ' печатает') + '...';
 
-  // BAD печатает (анимация появления)
-  // юзер перестал печатать
-  // BAD печатает (анимация скрытия)
   return (
     <motion.div
       initial={false}
-      className='shrink-0 overflow-hidden'
+      className='shrink-0 overflow-hidden px-2'
       variants={variants}
-      animate={currentTypingUsers.length > 0 ? 'visible' : 'hidden'}
+      animate={users.length > 0 ? 'visible' : 'hidden'}
     >
-      {currentTypingUsers.length > 1 ? (
-        <p>🐸 FIXME {`${currentTypingUsers.length > 2 ? threeAndMoreTyping : twoTyping} печатают`}</p>
-      ) : (
-        currentTypingUsers.length > 0 && (
-          <p>🐸 FIXME {`${currentTypingUsers.map((user) => user.name).join(' ')} печатает`}</p>
-        )
-      )}
+      {users.length > 0 && <p className='text-sm text-zinc-500 italic'>{typingString}</p>}
     </motion.div>
   );
 };

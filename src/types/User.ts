@@ -6,3 +6,5 @@ export type User = {
   createdAt: Date;
   nameColor: string | null;
 };
+
+export type PublicUser = Pick<User, 'id' | 'name' | 'nameColor'>;

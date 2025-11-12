@@ -1,6 +1,7 @@
 import { atomMessageToEdit } from '@/atoms/messages';
 import { useAtom } from 'jotai';
 import { Pencil, X } from 'lucide-react';
+import { delay } from 'motion/react';
 import { MouseEvent } from 'react';
 
 export const MessageToEditPreview = () => {
@@ -13,15 +14,16 @@ export const MessageToEditPreview = () => {
   };
 
   const handleClickOnMessage = () => {
-    const MSGElem = document.getElementById(messageToEdit!.id);
-    MSGElem?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    MSGElem?.classList.remove('bg-zinc-800');
-    MSGElem?.classList.add('bg-zinc-600');
+    const findedMessage = document.getElementById(messageToEdit!.id);
+    if (!findedMessage) return;
 
-    setTimeout(() => {
-      MSGElem?.classList.remove('bg-zinc-600');
-      MSGElem?.classList.add('bg-zinc-800');
-      console.log('removed');
+    findedMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    findedMessage.classList.remove('bg-zinc-800');
+    findedMessage.classList.add('bg-zinc-600');
+
+    delay(() => {
+      findedMessage.classList.remove('bg-zinc-600');
+      findedMessage.classList.add('bg-zinc-800');
     }, 1000);
   };
 
