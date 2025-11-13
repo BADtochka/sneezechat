@@ -7,7 +7,7 @@ import { Header } from '@/components/Header';
 import { Message } from '@/components/Message';
 import { TypingUsers } from '@/components/TypingUsers';
 import { useSocket } from '@/hooks/useSocket';
-import { deleteMessage, getMessages } from '@/server/messages';
+import { deleteMessageServerFn, getMessagesServerFn } from '@/server/message/messages.controller';
 import { MessageData } from '@/types/Message';
 import { ServerToClient } from '@/types/Socket';
 import { socketAddNewMessage, socketDeleteMessage, socketUpdateMessage } from '@/utils/message';
@@ -23,7 +23,7 @@ import { useEffect, useRef } from 'react';
 export const Route = createFileRoute('/')({
   ssr: 'data-only',
   component: RouteComponent,
-  loader: async () => await getMessages({ data: { page: 1, limit: 20 } }),
+  loader: async () => await getMessagesServerFn({ data: { page: 1, limit: 20 } }),
 });
 
 function RouteComponent() {
@@ -95,7 +95,7 @@ function RouteComponent() {
 
   const handleDeleteMessage = async (idToDelete: string) => {
     setMessages(messages.filter((msg) => msg.id !== idToDelete));
-    await tryCatch(deleteMessage({ data: { id: idToDelete } }));
+    await tryCatch(deleteMessageServerFn({ data: { id: idToDelete } }));
   };
 
   const handleMessageSend = (newMessage: MessageData) => {

@@ -8,6 +8,7 @@ export const messageSchema = z.object({
   createdAt: z.date(),
   editedAt: z.date().optional().nullable(),
   deletedAt: z.date().optional().nullable(),
+  tgMessageId: z.number().optional().nullable(),
 });
 
 export const getMessagesSchema = z.object({

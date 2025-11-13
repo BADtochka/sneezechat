@@ -1,6 +1,6 @@
 import { userAtom } from '@/atoms/user';
 import { ColorPicker } from '@/components/ColorPicker';
-import { createUser } from '@/server/user';
+import { createUser, test } from '@/server/user/user.controller';
 import { User } from '@/types/User';
 import { cn } from '@/utils/cn';
 import { tryCatch } from '@/utils/tryCatch';
@@ -52,6 +52,8 @@ function RouteComponent() {
   const handleColorChange = (hexColor: string) => {
     setNickNameColor(hexColor);
   };
+
+  test()
 
   if (user) return <Navigate to='/' />;
   return (

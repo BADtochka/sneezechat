@@ -88,7 +88,7 @@ export const FileDropArea: FC<PropsWithChildren<FileDropAreaProps>> = ({ childre
       onDragOver={_onDragOver}
       onDragEnter={_onDragEnter}
       onDragLeave={_onDragLeave}
-      className={cn('flex flex-col overflow-hidden', {
+      className={cn('flex flex-1 flex-col overflow-hidden', {
         '*:pointer-events-none': showOverlay,
       })}
     >

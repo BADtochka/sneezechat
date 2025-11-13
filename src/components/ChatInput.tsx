@@ -2,7 +2,7 @@ import { atomMessageToEdit } from '@/atoms/messages';
 import { userAtom } from '@/atoms/user';
 import { Emoji, useEmoji } from '@/hooks/useEmojis';
 import { useSocket } from '@/hooks/useSocket';
-import { sendMessage, updateMessage } from '@/server/messages';
+import { sendMessageServerFn, updateMessageServerFn } from '@/server/message/messages.controller';
 import { MessageData } from '@/types/Message';
 import { tryCatch } from '@/utils/tryCatch';
 import { useDebouncedCallback, useFocusTrap, useMergedRef, useThrottledCallback } from '@mantine/hooks';
@@ -64,7 +64,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
     if (!user || !text) return;
 
     const { data: newMessage } = await tryCatch(
-      sendMessage({
+      sendMessageServerFn({
         data: {
           author: user.id,
           text: text,
@@ -97,7 +97,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
     if (!user || !text || !messageToEdit) return;
 
     const { data: updatedMessage } = await tryCatch(
-      updateMessage({
+      updateMessageServerFn({
         data: {
           id: messageToEdit.id,
           text: text,
