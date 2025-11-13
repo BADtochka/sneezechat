@@ -1,7 +1,7 @@
 import { MessageData } from '@/types/Message';
 import { createServerOnlyFn } from '@tanstack/react-start';
 import { Bot } from 'grammy';
-import { createMessage, updateMessage } from './messages';
+import { createMessage } from './messages';
 import { createUser } from './users';
 import { wsServer } from './ws';
 
@@ -31,14 +31,14 @@ export const telegramBot = createServerOnlyFn(async () => {
     const message = await createMessage({
       author: user.id,
       text: ctx.message.text!,
-      tgMessageId: ctx.message.message_id,
+      // tgMessageId: ctx.message.message_id,
     });
     wsServer.broadcast('message:new', message!);
   });
 
   bot.on('edited_message', async (ctx) => {
     if (!ctx.editedMessage) return;
-    const chatMessage = console.log(ctx.editedMessage.text);
+    // const chatMessage = console.log(ctx.editedMessage.text);
     // updateMessage({ id });
   });
 
