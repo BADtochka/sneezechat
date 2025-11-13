@@ -9,6 +9,9 @@ import {
 import { createServerFn } from '@tanstack/react-start';
 import { asc, eq } from 'drizzle-orm';
 import { wsServer } from './ws';
+import { telegramService } from './telegram/telegram.service';
+import { MessageData, MessageSendRequest } from '@/types/Message';
+import { CreateUser, User } from '@/types/User';
 
 export const getMessages = createServerFn({
   method: 'GET',
@@ -44,8 +47,41 @@ export const sendMessage = createServerFn({
     const fullMessage = await getFullMessageById(message.id);
 
     wsServer.broadcast('message:new', fullMessage);
+
+    sendTelegramMessage(fullMessage);
+
     return fullMessage;
   });
+
+export const createUserInDB = async (newUser: CreateUser): Promise<User> => {
+  // const existedUser = await db.query.users.findFirst({
+  //   where: eq(users.name, newUser.name),
+  // });
+
+  let userToReturn;
+
+  const createdUser = await db.insert(users).values(newUser).returning();
+  userToReturn = createdUser[0];
+  return userToReturn;
+};
+
+// const createNewMessageInDB = async (newMessage: MessageSendRequest) => {
+//   const [message] = await db.insert(messages).values(newMessage).returning();
+//   const fullMessage = await getFullMessageById(message.id);
+//   wsServer.broadcast('message:new', fullMessage);
+
+//   return fullMessage;
+// };
+
+const sendTelegramMessage = async (fullMessage: MessageData) => {
+  //telegram integration
+  const res = await telegramService().sendToTelegram(fullMessage.author.name + ': ' + fullMessage.text);
+
+  if (res) {
+    console.log(res.message_id);
+    await db.update(messages).set({ tgMessageId: res.message_id }).where(eq(messages.id, fullMessage.id));
+  }
+};
 
 export const updateMessage = createServerFn({
   method: 'POST',
@@ -60,9 +96,16 @@ export const updateMessage = createServerFn({
 
     const fullMessage = await getFullMessageById(updatedMsg.id);
 
+    editTelegramMessage(fullMessage);
+
     wsServer.broadcast('message:update', fullMessage);
     return fullMessage;
   });
+
+const editTelegramMessage = async (fullMessage: MessageData) => {
+  //telegram integration
+  await telegramService().editMessage(fullMessage.tgMessageId!, fullMessage.author.name + ': ' + fullMessage.text);
+};
 
 const getFullMessageById = async (id: string) => {
   const [fullMessage] = await db
@@ -71,6 +114,7 @@ const getFullMessageById = async (id: string) => {
       id: messages.id,
       text: messages.text,
       createdAt: messages.createdAt,
+      tgMessageId: messages.tgMessageId,
     })
     .from(messages)
     .innerJoin(users, eq(messages.author, users.id))

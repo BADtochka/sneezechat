@@ -8,3 +8,5 @@ export type User = {
 };
 
 export type PublicUser = Pick<User, 'id' | 'name' | 'nameColor'>;
+
+export type CreateUser = Pick<User, 'name' | 'nameColor'>;

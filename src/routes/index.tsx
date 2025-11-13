@@ -36,7 +36,7 @@ function RouteComponent() {
 
   const typingUsersMapRef = useRef<Map<string, ServerToClient['user:typing']>>(new Map());
 
-  const [messageToEdit, setMessageToEdit] = useAtom(atomMessageToEdit);
+  const [_, setMessageToEdit] = useAtom(atomMessageToEdit);
   const [contextMenuMessage, setContextMenuMessage] = useAtom(atomMessageContextMenu);
   const [coords] = useAtom(atomMessageContextCoords);
   const ref = useClickOutside(() => setContextMenuMessage(null));
