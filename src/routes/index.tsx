@@ -36,7 +36,7 @@ function RouteComponent() {
 
   const typingUsersMapRef = useRef<Map<string, ServerToClient['user:typing']>>(new Map());
 
-  const [messageToEdit, setMessageToEdit] = useAtom(atomMessageToEdit);
+  const [_, setMessageToEdit] = useAtom(atomMessageToEdit);
   const [contextMenuMessage, setContextMenuMessage] = useAtom(atomMessageContextMenu);
   const [coords] = useAtom(atomMessageContextCoords);
   const ref = useClickOutside(() => setContextMenuMessage(null));
@@ -64,11 +64,13 @@ function RouteComponent() {
     const deleteMessageUnsub = subscribe('message:delete', (id) => socketDeleteMessage(id, messages, setMessages));
 
     const userTypingUnsub = subscribe('user:typing', (user) => {
-      if (user.typing) {
-        typingUsersMapRef.current.set(user.id, user);
-      } else {
+      const typingArray = Array.from(typingUsersMapRef.current.values());
+      if (!user.typing && typingArray.length - 1 > 0) {
         typingUsersMapRef.current.delete(user.id);
+        return;
       }
+      typingUsersMapRef.current.set(user.id, user);
+
       setTypingUsers(Array.from(typingUsersMapRef.current.values()));
     });
 
@@ -138,10 +140,12 @@ function RouteComponent() {
           />
         </div>
         <TypingUsers users={typingUsers} />
-        <ChatInput
-          onMessageSend={handleMessageSend}
-          onMessageUpdate={(updatedMessage) => socketUpdateMessage(updatedMessage, messages, setMessages)}
-        />
+        <div className='p-4 pt-0'>
+          <ChatInput
+            onMessageSend={handleMessageSend}
+            onMessageUpdate={(updatedMessage) => socketUpdateMessage(updatedMessage, messages, setMessages)}
+          />
+        </div>
       </FileDropArea>
     </div>
   );

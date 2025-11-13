@@ -145,9 +145,8 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
   }, [localTyping, text]);
 
   return (
-    <div className='relative flex w-full flex-col justify-end bg-zinc-800 px-4'>
+    <div className='relative flex w-full flex-col justify-end rounded-xl bg-zinc-800 px-4'>
       <MessageToEditPreview />
-
       <div className='flex min-h-16 w-full items-center gap-4'>
         <div className='flex items-center gap-4 *:size-5 *:cursor-pointer'>
           <File />
