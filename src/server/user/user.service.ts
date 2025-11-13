@@ -1,18 +1,8 @@
 import { db } from '@/db';
 import { users } from '@/db/schema';
-import { createUserSchema } from '@/schemas/user.schema.ts';
 import { CreateUser, User } from '@/types/User';
-import { createServerFn } from '@tanstack/react-start';
 import { eq } from 'drizzle-orm';
-import { wsServer } from './ws';
-
-export const createUser = createServerFn({
-  method: 'POST',
-})
-  .inputValidator(createUserSchema)
-  .handler(async ({ data: newUser }) => {
-    return createUserInDB(newUser);
-  });
+import { wsServer } from '../ws';
 
 export const createUserInDB = async (newUser: CreateUser): Promise<User> => {
   const existedUser = await db.query.users.findFirst({

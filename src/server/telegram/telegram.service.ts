@@ -13,5 +13,9 @@ export const telegramService = () => {
     return await telegramClient.api.editMessageText(CHAT_ID, messageId, newText);
   };
 
-  return { sendToTelegram, editMessage };
+  const deleteMessage = async (messageId: number) => {
+    return await telegramClient.api.deleteMessage(CHAT_ID, messageId);
+  };
+
+  return { sendToTelegram, editMessage, deleteMessage };
 };

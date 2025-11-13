@@ -1,5 +1,9 @@
 import { Bot } from 'grammy';
-import { createUserInDB } from '../user';
+import { createUserInDB } from '../user/user.service';
+import { createMessageInDb } from '../message/message.service';
+import { User } from '@/types/User';
+import { wsServer } from '../ws';
+// import { createUserInDB } from '../user';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 
@@ -12,8 +16,21 @@ export class Telegram {
 
   private async init() {
     this.telegramClient.start();
-    await createUserInDB({ name: 'Telegram Bot', nameColor: '#0088cc' });
+    const user = await createUserInDB({ name: 'Telegram Bot', nameColor: '#0088cc' });
+
+    this.initChatListener(user);
     console.log('✅ Telegram client initialized');
+  }
+
+  private initChatListener(user: User) {
+    console.log('✅ listener?');
+    this.telegramClient.on('message', async (msg) => {
+      const tgMessage = msg.message; // the message object
+      console.log(tgMessage);
+
+      const message = await createMessageInDb({ author: user.id, text: tgMessage.text! });
+      wsServer.broadcast('message:new', message!);
+    });
   }
 
   public getClient() {
