@@ -139,8 +139,6 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
   }, [messageToEdit]);
 
   useEffect(() => {
-    console.log(localTyping);
-
     localTyping ? throttledTyping() : debouncedTyping();
     return () => debouncedTyping();
   }, [localTyping]);
@@ -160,7 +158,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
         <input
           ref={mergedRef}
           value={text}
-          placeholder='Write a message...'
+          placeholder='Сообщение...'
           className='size-full text-2xl outline-none'
           onChange={handleChange}
           onKeyDown={handleKeyDown}

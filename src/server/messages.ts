@@ -1,4 +1,10 @@
-import { MessageData, MessageUpdateRequest, TgMessageSendRequest } from '@/types/Message';
+import {
+  MessageData,
+  MessageSendRequest,
+  MessageUpdateRequest,
+  TgMessageSendRequest,
+  TgMessageUpdateRequest,
+} from '@/types/Message';
 import { createServerFn, createServerOnlyFn } from '@tanstack/react-start';
 import { asc, eq } from 'drizzle-orm';
 import { db } from '../db';
@@ -10,9 +16,7 @@ import {
   updateMessageSchema,
 } from '../schemas/messages.schema';
 import { defaultError } from '../utils/throwError';
-// import { deleteTelegramMessage, editTelegramMessage, sendTelegramMessage } from './message/telegramMessage.service';
-import { UUID } from '@/types/UUID';
-import { editTelegramMessage, generateTelegramMessage, sendToTelegram } from './telegram';
+import { deleteTelegramMessage, editTelegramMessage, generateTelegramMessage, sendToTelegram } from './telegram';
 import { wsServer } from './ws';
 
 export const getMessagesRequest = createServerFn({
@@ -31,30 +35,32 @@ export const sendMessageRequest = createServerFn({
     const newMessage = await createMessage(message);
     if (!newMessage) throw defaultError();
 
-    const telegramMessage = await sendToTelegram(generateTelegramMessage(newMessage));
-    await updateMessage({ ...newMessage, tgMessageId: telegramMessage.message_id });
-    wsServer.broadcast('message:new', newMessage!);
+    sendTelegramMessageAndUpdateId(newMessage);
+
+    wsServer.broadcast('message:new', newMessage);
     return newMessage;
   });
+
+const sendTelegramMessageAndUpdateId = createServerOnlyFn(async (newMessage: MessageData) => {
+  const telegramMessage = await sendToTelegram(generateTelegramMessage(newMessage));
+  const updatedMsg = await updateMessage({ ...newMessage, tgMessageId: telegramMessage.message_id });
+  wsServer.broadcast('message:update', updatedMsg);
+});
 
 export const updateMessageRequest = createServerFn({
   method: 'POST',
 })
   .inputValidator(updateMessageSchema)
   .handler(async ({ data: updatedMessage }) => {
-    const [updatedMsg] = await db
-      .update(messages)
-      .set({ text: updatedMessage.text })
-      .where(eq(messages.id, updatedMessage.id))
-      .returning();
-    const fullMessage = await getFullMessageById(updatedMsg.id);
-    if (!fullMessage) throw defaultError();
+    const updatedMsg = await updateMessage(updatedMessage);
+    if (!updatedMsg) throw defaultError();
 
-    if (fullMessage.tgMessageId) {
-      editTelegramMessage(fullMessage.tgMessageId, fullMessage.text);
+    if (updatedMsg.tgMessageId) {
+      editTelegramMessage(updatedMsg.tgMessageId, generateTelegramMessage(updatedMsg));
     }
-    wsServer.broadcast('message:update', fullMessage);
-    return fullMessage;
+
+    wsServer.broadcast('message:update', updatedMsg);
+    return updatedMsg;
   });
 
 export const deleteMessageRequest = createServerFn({
@@ -66,26 +72,45 @@ export const deleteMessageRequest = createServerFn({
     if (!fullMessage) throw defaultError();
     const deletedMessage = await db.delete(messages).where(eq(messages.id, idToDelete)).returning();
 
-    // deleteTelegramMessage(fullMessage.tgMessageId!);
+    deleteTelegramMessage(fullMessage.tgMessageId!);
     wsServer.broadcast('message:delete', fullMessage.id);
 
     return deletedMessage;
   });
 
-export const createMessage = createServerOnlyFn(async (message: TgMessageSendRequest) => {
+export const createMessage = createServerOnlyFn(async (message: MessageSendRequest): Promise<MessageData> => {
   const [newMessage] = await db.insert(messages).values(message).returning();
   const fullMessage = await getFullMessageById(newMessage.id);
   return fullMessage;
 });
 
-export const updateMessage = createServerOnlyFn(async (message: MessageUpdateRequest) => {
-  const { author, id, ...restMessasge } = message;
-  return await db.update(messages).set(restMessasge).where(eq(messages.id, message.id));
+export const updateMessage = createServerOnlyFn(async (message: MessageUpdateRequest): Promise<MessageData> => {
+  const { author, id, ...restMessage } = message;
+  const [newMessage] = await db.update(messages).set(restMessage).where(eq(messages.id, message.id)).returning();
+  const fullMessage = await getFullMessageById(newMessage.id);
+  return fullMessage;
 });
 
-export const getMessage = createServerOnlyFn(async (id: UUID) => {
-  // return await db.query
+export const createTelegramMessage = createServerOnlyFn(async (message: TgMessageSendRequest): Promise<MessageData> => {
+  const [newMessage] = await db.insert(messages).values(message).returning();
+  const fullMessage = await getFullMessageById(newMessage.id);
+  return fullMessage;
 });
+
+export const updateTelegramMessage = createServerOnlyFn(
+  async (message: TgMessageUpdateRequest): Promise<MessageData | null> => {
+    if (!message.tgMessageId) return null;
+
+    const [updateMessage] = await db
+      .update(messages)
+      .set(message)
+      .where(eq(messages.tgMessageId, message.tgMessageId))
+      .returning();
+
+    const fullMessage = await getFullMessageById(updateMessage.id);
+    return fullMessage;
+  },
+);
 
 export const getMessages = createServerOnlyFn(async (page: number, limit: number): Promise<MessageData[]> => {
   const totalCount = await db.$count(messages);
@@ -107,7 +132,7 @@ export const getMessages = createServerOnlyFn(async (page: number, limit: number
   return formatted;
 });
 
-const getFullMessageById = createServerOnlyFn(async (id: string) => {
+const getFullMessageById = createServerOnlyFn(async (id: string): Promise<MessageData> => {
   const [fullMessage] = await db
     .select({
       author: users,
@@ -119,5 +144,20 @@ const getFullMessageById = createServerOnlyFn(async (id: string) => {
     .from(messages)
     .innerJoin(users, eq(messages.author, users.id))
     .where(eq(messages.id, id));
+  return fullMessage;
+});
+
+const getFullMessageByTelegramId = createServerOnlyFn(async (tgMessageId: number): Promise<MessageData> => {
+  const [fullMessage] = await db
+    .select({
+      author: users,
+      id: messages.id,
+      text: messages.text,
+      createdAt: messages.createdAt,
+      tgMessageId: messages.tgMessageId,
+    })
+    .from(messages)
+    .innerJoin(users, eq(messages.author, users.id))
+    .where(eq(messages.tgMessageId, tgMessageId));
   return fullMessage;
 });

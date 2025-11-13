@@ -1,7 +1,7 @@
 import { MessageData } from '@/types/Message';
 import { createServerOnlyFn } from '@tanstack/react-start';
-import { Bot } from 'grammy';
-import { createMessage } from './messages';
+import { Bot, Context } from 'grammy';
+import { createTelegramMessage, updateTelegramMessage } from './messages';
 import { createUser } from './users';
 import { wsServer } from './ws';
 
@@ -21,29 +21,32 @@ const getBot = () => {
 
 export const telegramBot = createServerOnlyFn(async () => {
   const bot = getBot();
-
   if (bot.isInited()) return;
 
-  bot.on('message', async (ctx) => {
-    const user = await createUser({ name: ctx.from.first_name, nameColor: 'white' });
-    console.log(ctx.message.message_id);
-
-    const message = await createMessage({
-      author: user.id,
-      text: ctx.message.text!,
-      // tgMessageId: ctx.message.message_id,
-    });
-    wsServer.broadcast('message:new', message!);
-  });
-
-  bot.on('edited_message', async (ctx) => {
-    if (!ctx.editedMessage) return;
-    // const chatMessage = console.log(ctx.editedMessage.text);
-    // updateMessage({ id });
-  });
-
+  bot.on('message', async (ctx) => botOnMessage(ctx));
+  bot.on('edited_message', async (ctx) => botOnEditMessage(ctx));
   bot.start();
 });
+
+const botOnMessage = async (ctx: Context) => {
+  if (!ctx.message) return;
+  const user = await createUser({ name: ctx.from!.first_name, nameColor: 'white' });
+  const message = await createTelegramMessage({
+    author: user.id,
+    text: ctx.message.text!,
+    tgMessageId: ctx.message.message_id,
+  });
+  wsServer.broadcast('message:new', message);
+};
+
+const botOnEditMessage = async (ctx: Context) => {
+  if (!ctx.editedMessage) return;
+  const message = await updateTelegramMessage({
+    tgMessageId: ctx.editedMessage.message_id,
+    text: ctx.editedMessage.text!,
+  });
+  if (message) wsServer.broadcast('message:update', message);
+};
 
 export const generateTelegramMessage = (message: MessageData) => {
   return `${message.author.name}: \n${message.text}`;
@@ -55,12 +58,13 @@ export const sendToTelegram = async (message: string) => {
 };
 
 export const editTelegramMessage = async (messageId: number, newText: string) => {
+  if (!messageId) return;
   const bot = getBot();
-
   return await bot.api.editMessageText(CHAT_ID, messageId, newText);
 };
 
 export const deleteTelegramMessage = async (messageId: number) => {
+  if (!messageId) return;
   const bot = getBot();
   return await bot.api.deleteMessage(CHAT_ID, messageId);
 };

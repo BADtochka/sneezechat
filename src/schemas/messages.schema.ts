@@ -32,5 +32,11 @@ export const deleteMessageSchema = z.object({
 
 export const tgCreateMessageSchema = z.object({
   author: z.uuid(),
+  tgMessageId: z.number(),
+  text: z.string().min(1).max(280),
+});
+
+export const tgUpdateMessageSchema = z.object({
+  tgMessageId: z.number().optional().nullable(),
   text: z.string().min(1).max(280),
 });

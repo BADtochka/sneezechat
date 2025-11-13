@@ -1,3 +1,4 @@
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { MessageData } from '@/types/Message';
 import { FC } from 'react';
 
@@ -6,11 +7,14 @@ type AuthorProps = {
 };
 
 export const Author: FC<AuthorProps> = ({ data: message }) => {
+  const { format } = useDateFormatter();
+
   return (
-    <div>
-      <p className='line-clamp-1 text-xl font-bold' style={{ color: message.author.nameColor ?? 'white' }}>
+    <div className='flex flex-row'>
+      <p className='line-clamp-1 flex-1 text-xl font-bold' style={{ color: message.author.nameColor ?? 'white' }}>
         {message.author.name}
       </p>
+      <p className='text-x line-clamp-2 text-zinc-600'>{format(message.createdAt)}</p>
     </div>
   );
 };

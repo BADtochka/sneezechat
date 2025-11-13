@@ -18,6 +18,7 @@ export const Message: FC<MessageProps> = ({ data: message }) => {
   const [_coords, setMemorizedCoords] = useAtom(atomMessageContextCoords);
 
   const onContextMenu = (event: MouseEvent) => {
+    if (message.author.id !== user?.id) return;
     event.preventDefault();
     setContextMenuMessage(message);
     setMemorizedCoords({ x: event.clientX, y: event.clientY });

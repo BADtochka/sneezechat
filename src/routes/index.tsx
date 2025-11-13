@@ -1,7 +1,7 @@
 import { atomMessageContextCoords, atomMessageContextMenu, atomMessages, atomMessageToEdit } from '@/atoms/messages';
 import { typingUsersAtom, userAtom } from '@/atoms/user';
 import { ChatInput } from '@/components/ChatInput';
-import { ContextMenu } from '@/components/ContextMenu';
+import { ContextMenu, MenuItem } from '@/components/ContextMenu';
 import { FileDropArea } from '@/components/FileDropArea';
 import { Header } from '@/components/Header';
 import { Message } from '@/components/Message';
@@ -112,6 +112,21 @@ function RouteComponent() {
 
   if (!user) return <Navigate to='/auth' />;
 
+  const getContextMenuItems = (): MenuItem[] => {
+    return [
+      {
+        label: 'Редактировать',
+        icon: <Pen />,
+        callback: () => setMessageToEdit(contextMenuMessage!),
+      },
+      {
+        label: 'Удалить',
+        icon: <Trash />,
+        callback: () => handleDeleteMessage(contextMenuMessage!.id),
+      },
+    ];
+  };
+
   return (
     <div className='relative mx-auto flex h-dvh max-w-4xl flex-col border-x border-zinc-800'>
       <Header />
@@ -131,18 +146,7 @@ function RouteComponent() {
             contextMenuIsOpen={!!contextMenuMessage}
             onClose={() => setContextMenuMessage(null)}
             coords={coords}
-            items={[
-              {
-                label: 'Редактировать',
-                icon: <Pen />,
-                callback: () => setMessageToEdit(contextMenuMessage!),
-              },
-              {
-                label: 'Удалить',
-                icon: <Trash />,
-                callback: () => handleDeleteMessage(contextMenuMessage!.id),
-              },
-            ]}
+            items={getContextMenuItems()}
           />
         </div>
         <TypingUsers users={typingUsers} />
