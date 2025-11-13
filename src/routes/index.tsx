@@ -7,23 +7,23 @@ import { Header } from '@/components/Header';
 import { Message } from '@/components/Message';
 import { TypingUsers } from '@/components/TypingUsers';
 import { useSocket } from '@/hooks/useSocket';
-import { deleteMessageServerFn, getMessagesServerFn } from '@/server/message/messages.controller';
+import { deleteMessageRequest, getMessagesRequest } from '@/server/messages';
 import { MessageData } from '@/types/Message';
 import { ServerToClient } from '@/types/Socket';
-import { socketAddNewMessage, socketDeleteMessage, socketUpdateMessage } from '@/utils/message';
-import { tryCatch } from '@/utils/tryCatch';
 import { useClickOutside } from '@mantine/hooks';
 import { createFileRoute, Navigate } from '@tanstack/react-router';
 import { useAtom } from 'jotai';
 import { Pen, Trash } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
+import { socketAddNewMessage, socketDeleteMessage, socketUpdateMessage } from '../utils/message';
+import { tryCatch } from '../utils/tryCatch';
 
 import { useEffect, useRef } from 'react';
 
 export const Route = createFileRoute('/')({
   ssr: 'data-only',
   component: RouteComponent,
-  loader: async () => await getMessagesServerFn({ data: { page: 1, limit: 20 } }),
+  loader: async () => await getMessagesRequest({ data: { page: 1, limit: 20 } }),
 });
 
 function RouteComponent() {
@@ -47,6 +47,7 @@ function RouteComponent() {
   }, [preloadMessages, messages]);
 
   useEffect(() => {
+    if (!user) return;
     messages.map((msg) => {
       if (msg.author.id === user!.id) {
         msg.author.nameColor = user!.nameColor;
@@ -63,13 +64,18 @@ function RouteComponent() {
     );
     const deleteMessageUnsub = subscribe('message:delete', (id) => socketDeleteMessage(id, messages, setMessages));
 
-    const userTypingUnsub = subscribe('user:typing', (user) => {
+    const userTypingUnsub = subscribe('user:typing', (typingUser) => {
       const typingArray = Array.from(typingUsersMapRef.current.values());
-      if (!user.typing && typingArray.length - 1 > 0) {
-        typingUsersMapRef.current.delete(user.id);
+      if (typingUser.id === user!.id) return;
+
+      if (!typingUser.typing && typingArray.length - 1 === 1) {
+        typingUsersMapRef.current.delete(typingUser.id);
         return;
+      } else if (typingUser.typing && typingArray.some((user) => !user.typing)) {
+        const oldUser = typingArray.find((user) => !user.typing);
+        typingUsersMapRef.current.delete(oldUser!.id);
       }
-      typingUsersMapRef.current.set(user.id, user);
+      typingUsersMapRef.current.set(typingUser.id, typingUser);
 
       setTypingUsers(Array.from(typingUsersMapRef.current.values()));
     });
@@ -95,7 +101,7 @@ function RouteComponent() {
 
   const handleDeleteMessage = async (idToDelete: string) => {
     setMessages(messages.filter((msg) => msg.id !== idToDelete));
-    await tryCatch(deleteMessageServerFn({ data: { id: idToDelete } }));
+    await tryCatch(deleteMessageRequest({ data: { id: idToDelete } }));
   };
 
   const handleMessageSend = (newMessage: MessageData) => {

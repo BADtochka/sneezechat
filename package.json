@@ -7,11 +7,7 @@
     "build": "vite build",
     "serve": "vite preview",
     "test": "vitest run",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:pull": "drizzle-kit pull",
-    "db:studio": "drizzle-kit studio"
+    "migrate": "drizzle-kit generate && drizzle-kit push"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",

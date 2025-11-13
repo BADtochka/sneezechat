@@ -1,6 +1,6 @@
 // useServer.ts
 import { ServerToClient } from '@/types/Socket';
-import { wsClient } from '@/utils/wsClient';
+import { wsClient } from '../utils/wsClient';
 
 export function useSocket() {
   function subscribe<T extends keyof ServerToClient>(event: T, callback: (data: ServerToClient[T]) => void) {

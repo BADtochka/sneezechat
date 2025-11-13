@@ -1,10 +1,10 @@
 import { Emoji, EmojiCategory, useEmoji } from '@/hooks/useEmojis';
-import { getObjectKeys } from '@/utils/getObjectKeys';
 import { useClickOutside, useFocusTrap, useHover } from '@mantine/hooks';
 import { ClientOnly } from '@tanstack/react-router';
 import { motion, Variants } from 'motion/react';
 import { ChangeEvent, FC, useEffect, useRef, useState } from 'react';
 import { default as emojis } from 'unicode-emoji-json';
+import { getObjectKeys } from '../utils/getObjectKeys';
 type EmojiPickerProps = {
   onEmojiClick: (data: Emoji) => void;
 };

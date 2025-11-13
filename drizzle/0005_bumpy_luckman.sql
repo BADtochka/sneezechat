@@ -1,2 +1,0 @@
-ALTER TABLE "messages" ALTER COLUMN "author" SET DATA TYPE uuid;--> statement-breakpoint
-ALTER TABLE "messages" ADD CONSTRAINT "messages_author_users_id_fk" FOREIGN KEY ("author") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;

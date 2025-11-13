@@ -1,6 +1,6 @@
-import { debounce } from '@/utils/debounce';
-import { throttle } from '@/utils/throttle';
 import { createFileRoute } from '@tanstack/react-router';
+import { debounce } from '../utils/debounce';
+import { throttle } from '../utils/throttle';
 
 export const Route = createFileRoute('/scroll/')({
   component: RouteComponent,

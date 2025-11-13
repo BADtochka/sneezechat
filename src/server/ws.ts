@@ -64,7 +64,7 @@ class WSServer {
   }
 
   broadcast<T extends keyof ServerToClient>(event: T, data: ServerToClient[T]) {
-    console.log('broadcasting', event, data);
+    // console.debug('broadcasting', event, data);
 
     this.wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {

@@ -2,13 +2,13 @@ import { atomMessageToEdit } from '@/atoms/messages';
 import { userAtom } from '@/atoms/user';
 import { Emoji, useEmoji } from '@/hooks/useEmojis';
 import { useSocket } from '@/hooks/useSocket';
-import { sendMessageServerFn, updateMessageServerFn } from '@/server/message/messages.controller';
+import { sendMessageRequest, updateMessageRequest } from '@/server/messages';
 import { MessageData } from '@/types/Message';
-import { tryCatch } from '@/utils/tryCatch';
 import { useDebouncedCallback, useFocusTrap, useMergedRef, useThrottledCallback } from '@mantine/hooks';
 import { useAtom } from 'jotai';
 import { Check, File, SendHorizontal } from 'lucide-react';
 import { ChangeEvent, FC, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { tryCatch } from '../utils/tryCatch';
 import { ColonPicker } from './ColonPicker';
 import { EmojiPicker } from './EmojiPicker';
 import { MessageToEditPreview } from './MessageToEditView';
@@ -28,26 +28,26 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
   const focusTrapRef = useFocusTrap();
   const mergedRef = useMergedRef(inputRef, focusTrapRef);
   const [localTyping, setLocalTyping] = useState(false);
-  const throttledTyping = useThrottledCallback(
-    () =>
-      send('user:typing', {
-        id: user!.id,
-        name: user!.name,
-        nameColor: user!.nameColor,
-        typing: true,
-      }),
-    1000,
-  );
-  const debouncedTyping = useDebouncedCallback(
-    () =>
-      send('user:typing', {
-        id: user!.id,
-        name: user!.name,
-        nameColor: user!.nameColor,
-        typing: false,
-      }),
-    2000,
-  );
+
+  const throttledTyping = useThrottledCallback(() => {
+    if (!user) return;
+    send('user:typing', {
+      id: user!.id,
+      name: user!.name,
+      nameColor: user!.nameColor,
+      typing: true,
+    });
+  }, 1000);
+
+  const debouncedTyping = useDebouncedCallback(() => {
+    if (!user) return;
+    send('user:typing', {
+      id: user.id,
+      name: user.name,
+      nameColor: user.nameColor,
+      typing: false,
+    });
+  }, 2000);
   const { send } = useSocket();
 
   const handleMessage = async () => {
@@ -64,14 +64,13 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
     if (!user || !text) return;
 
     const { data: newMessage } = await tryCatch(
-      sendMessageServerFn({
+      sendMessageRequest({
         data: {
           author: user.id,
           text: text,
         },
       }),
     );
-
     if (newMessage) {
       setText('');
       onMessageSend(newMessage);
@@ -97,7 +96,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
     if (!user || !text || !messageToEdit) return;
 
     const { data: updatedMessage } = await tryCatch(
-      updateMessageServerFn({
+      updateMessageRequest({
         data: {
           id: messageToEdit.id,
           text: text,
@@ -116,7 +115,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const content = e.target.value;
     setText(content);
-    setLocalTyping(content.length > 2);
+    setLocalTyping(content.length > 1);
     if (content.length < 1) return;
 
     setOpenColonPicker(content.includes(':') && content.length > 2);
@@ -140,9 +139,11 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
   }, [messageToEdit]);
 
   useEffect(() => {
+    console.log(localTyping);
+
     localTyping ? throttledTyping() : debouncedTyping();
     return () => debouncedTyping();
-  }, [localTyping, text]);
+  }, [localTyping]);
 
   return (
     <div className='relative flex w-full flex-col justify-end rounded-xl bg-zinc-800 px-4'>

@@ -1,1 +1,0 @@
-ALTER TABLE "messages" RENAME COLUMN "message" TO "text";

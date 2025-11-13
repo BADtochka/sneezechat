@@ -1,8 +1,8 @@
 import { Emoji } from '@/hooks/useEmojis';
-import { cn } from '@/utils/cn';
 import { useHotkeys } from '@mantine/hooks';
 import { animate, motion, Variants } from 'motion/react';
 import { FC, useEffect, useRef, useState, WheelEvent } from 'react';
+import { cn } from '../utils/cn';
 
 type ColonPickerProps = {
   emojis: Emoji[];

@@ -1,6 +1,6 @@
-import { cn } from '@/utils/cn';
 import { AnimatePresence } from 'motion/react';
 import { DragEvent, FC, PropsWithChildren, useRef, useState } from 'react';
+import { cn } from '../utils/cn';
 import { FileDropOverlay } from './FileDropOverlay';
 
 type FileDropAreaProps = {

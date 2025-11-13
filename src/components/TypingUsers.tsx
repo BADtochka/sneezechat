@@ -20,17 +20,18 @@ export const TypingUsers: FC<TypingProps> = ({ users }) => {
 
   console.log(users);
 
+  const typingUsers = users.filter((user) => user.typing);
   const userNamesString = users.map((user) => user.name).join(users.length === 2 ? ' и ' : ', ');
-  let typingString = userNamesString + (users.length > 1 ? ' печатают' : ' печатает') + '...';
+  const typingString = userNamesString + (users.length > 1 ? ' печатают' : ' печатает') + '...';
 
   return (
     <motion.div
       initial={false}
       className='shrink-0 overflow-hidden px-4'
       variants={variants}
-      animate={users.length > 0 ? 'visible' : 'hidden'}
+      animate={typingUsers.length > 0 ? 'visible' : 'hidden'}
     >
-      {users.length > 0 && <motion.p className='text-sm text-zinc-500 italic'>{typingString}</motion.p>}
+      <p className='text-sm text-zinc-500 italic'>{typingString}</p>
     </motion.div>
   );
 };

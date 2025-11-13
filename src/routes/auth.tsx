@@ -1,15 +1,15 @@
 import { userAtom } from '@/atoms/user';
 import { ColorPicker } from '@/components/ColorPicker';
-import { createUser, test } from '@/server/user/user.controller';
+import { createUserRequest } from '@/server/users';
 import { User } from '@/types/User';
-import { cn } from '@/utils/cn';
-import { tryCatch } from '@/utils/tryCatch';
 import { useHotkeys } from '@mantine/hooks';
 import { createFileRoute, Navigate, useNavigate } from '@tanstack/react-router';
 import { useAtom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
 import { LoaderCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { cn } from '../utils/cn';
+import { tryCatch } from '../utils/tryCatch';
 
 export const Route = createFileRoute('/auth')({
   ssr: 'data-only',
@@ -42,7 +42,7 @@ function RouteComponent() {
 
     setShowSpinner(!showSpinner);
 
-    const { data } = await tryCatch(createUser({ data: newUser }));
+    const { data } = await tryCatch(createUserRequest({ data: newUser }));
     if (data) {
       setUser(data);
       navigate({ to: '/' });
@@ -53,9 +53,8 @@ function RouteComponent() {
     setNickNameColor(hexColor);
   };
 
-  test()
-
   if (user) return <Navigate to='/' />;
+
   return (
     <div className='flex h-screen flex-col items-center justify-center *:text-2xl'>
       <div className='flex max-w-[80vw] flex-col items-center gap-[1em] rounded-l bg-[#101011] p-[1.5em]'>

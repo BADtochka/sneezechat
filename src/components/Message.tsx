@@ -1,11 +1,11 @@
 import { atomMessageContextCoords, atomMessageContextMenu } from '@/atoms/messages';
 import { userAtom } from '@/atoms/user';
 import { MessageData } from '@/types/Message';
-import { cn } from '@/utils/cn';
 import { useAtom } from 'jotai';
 import { Variants } from 'motion/react';
 import * as motion from 'motion/react-client';
 import { FC, MouseEvent } from 'react';
+import { cn } from '../utils/cn';
 import { Author } from './Author';
 
 type MessageProps = {
@@ -34,6 +34,8 @@ export const Message: FC<MessageProps> = ({ data: message }) => {
     deleted: { opacity: 0, scale: 0.9 },
   };
 
+  if (!user) return null;
+
   return (
     <motion.div
       layout
@@ -47,7 +49,7 @@ export const Message: FC<MessageProps> = ({ data: message }) => {
         'ml-auto': message.author.id === user!.id,
         'bg-zinc-600': contextMenuMessage && contextMenuMessage.id === message.id,
       })}
-      custom={message.author.id === user!.id}
+      custom={message.author.id === user.id}
     >
       <Author data={message} />
       <p className='text-xl wrap-break-word'>{message.text}</p>

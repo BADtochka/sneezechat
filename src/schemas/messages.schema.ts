@@ -23,9 +23,14 @@ export const createMessageSchema = z.object({
 
 export const updateMessageSchema = z.object({
   id: z.uuid(),
-  text: z.string().min(1).max(280),
+  ...messageSchema.partial().omit({ id: true }).shape,
 });
 
 export const deleteMessageSchema = z.object({
   id: z.uuid(),
+});
+
+export const tgCreateMessageSchema = z.object({
+  author: z.uuid(),
+  text: z.string().min(1).max(280),
 });

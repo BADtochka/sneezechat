@@ -1,9 +1,9 @@
 import { preloadedEmojisAtom } from '@/atoms/emojis';
-import { getObjectKeys } from '@/utils/getObjectKeys';
 import keywords from 'emojilib';
 import { useAtom } from 'jotai';
 import { useEffect, useState } from 'react';
 import { default as emojis } from 'unicode-emoji-json';
+import { getObjectKeys } from '../utils/getObjectKeys';
 
 export const categories = [
   'Smileys & Emotion',
