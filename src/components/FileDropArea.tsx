@@ -1,3 +1,5 @@
+import { droppedFileAtom } from '@/atoms/system';
+import { useAtom } from 'jotai';
 import { AnimatePresence } from 'motion/react';
 import { DragEvent, FC, PropsWithChildren, useRef, useState } from 'react';
 import { cn } from '../utils/cn';
@@ -7,13 +9,13 @@ type FileDropAreaProps = {
   accept?: string[];
 };
 
-const containsFiles = (event: DragEvent<HTMLDivElement>) => Array.from(event.dataTransfer.types).includes('Files');
-
 export const FileDropArea: FC<PropsWithChildren<FileDropAreaProps>> = ({ children }) => {
   const [showOverlay, setShowOverlay] = useState(false);
+  const [_, setDroppedFile] = useAtom(droppedFileAtom);
   const [status, setStatus] = useState<'accepted' | 'rejected' | 'waiting'>('waiting');
   const dragCounterRef = useRef(0);
 
+  const containsFiles = (event: DragEvent<HTMLDivElement>) => Array.from(event.dataTransfer.types).includes('Files');
   const resetDragState = () => {
     dragCounterRef.current = 0;
     setShowOverlay(false);
@@ -24,16 +26,11 @@ export const FileDropArea: FC<PropsWithChildren<FileDropAreaProps>> = ({ childre
     event.stopPropagation();
     event.preventDefault();
 
-    const items = event.dataTransfer.items;
+    const files = Array.from(event.dataTransfer.files);
 
-    for (const item of items) {
-      const entry = item.webkitGetAsEntry();
+    if (files.length > 1) return;
 
-      if (entry) {
-        console.log(entry);
-      }
-    }
-
+    setDroppedFile({ file: files[0], showPreview: true });
     resetDragState();
     // for (const file of files) {
     // console.log(event.dataTransfer);

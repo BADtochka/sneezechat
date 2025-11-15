@@ -1,16 +1,19 @@
 import { atomMessageToEdit } from '@/atoms/messages';
+import { droppedFileAtom } from '@/atoms/system';
 import { userAtom } from '@/atoms/user';
 import { Emoji, useEmoji } from '@/hooks/useEmojis';
 import { useSocket } from '@/hooks/useSocket';
-import { sendMessageRequest, updateMessageRequest } from '@/server/messages';
+import { sendMessageRequest, updateMessageRequest, uploadFile } from '@/server/messages';
 import { MessageData } from '@/types/Message';
 import { useDebouncedCallback, useFocusTrap, useMergedRef, useThrottledCallback } from '@mantine/hooks';
 import { useAtom } from 'jotai';
 import { Check, File, SendHorizontal } from 'lucide-react';
+import { AnimatePresence, motion, Variants } from 'motion/react';
 import { ChangeEvent, FC, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { tryCatch } from '../utils/tryCatch';
 import { ColonPicker } from './ColonPicker';
 import { EmojiPicker } from './EmojiPicker';
+import { FilePreview } from './FilePreview';
 import { MessageToEditPreview } from './MessageToEditView';
 
 type ChatInputProps = {
@@ -28,6 +31,21 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
   const focusTrapRef = useFocusTrap();
   const mergedRef = useMergedRef(inputRef, focusTrapRef);
   const [localTyping, setLocalTyping] = useState(false);
+  const [droppedFile, setDroppedFile] = useAtom(droppedFileAtom);
+
+  const variants: Variants = {
+    hidden: {
+      opacity: 0,
+    },
+    visible: {
+      opacity: 1,
+    },
+    extended: {
+      opacity: 1,
+      height: 200,
+      paddingTop: 16,
+    },
+  };
 
   const throttledTyping = useThrottledCallback(() => {
     if (!user) return;
@@ -53,11 +71,24 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
   const handleMessage = async () => {
     if (!inputRef.current) return;
 
+    if (droppedFile.showPreview && droppedFile.file) {
+      await handleUploadFile();
+      return;
+    }
+
     if (messageToEdit) {
       await handleUpdateMessage();
     } else {
       await handleSendMessage();
     }
+  };
+
+  const handleUploadFile = async () => {
+    if (!droppedFile.file) return;
+    const formData = new FormData();
+
+    formData.append('file', droppedFile.file);
+    uploadFile(formData);
   };
 
   const handleSendMessage = async () => {
@@ -83,6 +114,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
     if (e.key === 'Escape') {
       setText('');
       setMessageToEdit(null);
+      setDroppedFile({ ...droppedFile, showPreview: false });
       return;
     }
 
@@ -107,7 +139,6 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
     if (updatedMessage) {
       setText('');
       setMessageToEdit(null);
-
       onMessageUpdate(updatedMessage);
     }
   };
@@ -144,7 +175,20 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
   }, [localTyping]);
 
   return (
-    <div className='relative flex w-full flex-col justify-end rounded-xl bg-zinc-800 px-4'>
+    <motion.div
+      variants={variants}
+      initial='hidden'
+      animate={droppedFile.showPreview ? 'extended' : 'visible'}
+      className='relative flex w-full flex-col justify-end rounded-xl bg-zinc-800 px-4'
+    >
+      <AnimatePresence mode='popLayout'>
+        {droppedFile.showPreview && (
+          <FilePreview
+            file={droppedFile.file!}
+            onDelete={() => setDroppedFile({ ...droppedFile, showPreview: false })}
+          />
+        )}
+      </AnimatePresence>
       <MessageToEditPreview />
       <div className='flex min-h-16 w-full items-center gap-4'>
         <div className='flex items-center gap-4 *:size-5 *:cursor-pointer'>
@@ -164,7 +208,6 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
           onKeyDown={handleKeyDown}
         />
         <div className='flex items-center gap-2'>
-          {/* svg gradient */}
           <svg width='0' height='0'>
             <linearGradient id='pink-purple-gradient' x1='100%' y1='100%' x2='0%' y2='0%'>
               <stop stopColor='#f6339a' offset='0%' />
@@ -182,6 +225,6 @@ export const ChatInput: FC<ChatInputProps> = ({ onMessageSend, onMessageUpdate }
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };

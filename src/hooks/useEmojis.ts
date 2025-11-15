@@ -1,4 +1,4 @@
-import { preloadedEmojisAtom } from '@/atoms/emojis';
+import { preloadedEmojisAtom } from '@/atoms/system';
 import keywords from 'emojilib';
 import { useAtom } from 'jotai';
 import { useEffect, useState } from 'react';

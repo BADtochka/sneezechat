@@ -29,7 +29,8 @@ export const telegramBot = createServerOnlyFn(async () => {
 });
 
 const botOnMessage = async (ctx: Context) => {
-  if (!ctx.message) return;
+  if (!ctx.message || !ctx.message.text) return;
+
   const user = await createUser({ name: ctx.from!.first_name, nameColor: 'white' });
   const message = await createTelegramMessage({
     author: user.id,

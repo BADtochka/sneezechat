@@ -40,3 +40,9 @@ export const tgUpdateMessageSchema = z.object({
   tgMessageId: z.number().optional().nullable(),
   text: z.string().min(1).max(280),
 });
+
+export const uploadFileSchema = z.object({
+  file: z.file(),
+  // можно добавить whitelist файлов
+  // .mime(['']),
+});

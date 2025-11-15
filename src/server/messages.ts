@@ -161,3 +161,17 @@ const getFullMessageByTelegramId = createServerOnlyFn(async (tgMessageId: number
     .where(eq(messages.tgMessageId, tgMessageId));
   return fullMessage;
 });
+
+export const uploadFile = createServerFn()
+  .inputValidator((data) => {
+    if (!(data instanceof FormData)) {
+      throw new Error('Expected FormData');
+    }
+
+    return {
+      file: data.get('file'),
+    };
+  })
+  .handler(async ({ data: file }) => {
+    console.log(file);
+  });
